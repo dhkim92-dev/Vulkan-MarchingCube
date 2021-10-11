@@ -178,7 +178,7 @@ void Scan::run(Buffer *d_input, Buffer *d_output){
 	}
 	printf("\n");
 
-
+	vector<VkCommandBuffer> used_buffers;
 	LOG("GPUProcess start!\n");
 	for(uint32_t i = 0 ; i < d_grps.size() ; ++i){
 		if(d_grps[i] != nullptr){
@@ -200,7 +200,7 @@ void Scan::run(Buffer *d_input, Buffer *d_output){
 			// LOG("submith\n");
 			queue->waitFences(&fence, 1);
 			// LOG("waitIdle\n");
-			queue->free(command);
+			used_buffers.push_back(command);
 			// LOG("free command buffer\n");
 
 		}else{
@@ -218,7 +218,7 @@ void Scan::run(Buffer *d_input, Buffer *d_output){
 			queue->submit(&command, 1, 0, nullptr, 0, nullptr, 0, fence);
 			// LOG("submit\n");
 			queue->waitFences(&fence, 1);
-			queue->free(command);
+			used_buffers.push_back(command);
 
 		}
 	}
@@ -234,24 +234,20 @@ void Scan::run(Buffer *d_input, Buffer *d_output){
 				{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_outputs[i]->descriptor, nullptr},
 				{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_grps[i]->descriptor, nullptr},
 			});
-			LOG("uniform_update kernel set\n");
 			queue->bindKernel(command, &program.uniform_update);
-			printf("bind Kernel done\n");
 			queue->dispatch(command, g_sizes[i], 1, 1);
-			LOG("dispatch\n");
 			queue->endCommandBuffer(command);
 			queue->resetFences(&fence, 1);
 			queue->submit(&command, 1, 0, nullptr, 0, nullptr, 0, fence);
-			LOG("submit\n");
 			queue->waitFences(&fence, 1);
-			LOG("waitFences\n");
-			LOG("waitIdle()\n");
-			queue->free(command);
-			LOG("free()\n");
+			used_buffers.push_back(command);
 		}
 	}
-	LOG("destroy fence\n");
 	queue->destroyFence(fence);
+	queue->waitIdle();
+	for(auto cmd : used_buffers){
+		queue->free(cmd);
+	}
 	LOG("scan process done\n");
 }
 

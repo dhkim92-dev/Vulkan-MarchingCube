@@ -52,11 +52,11 @@ int main(int argc, char* argv[]){
 	scan.init(sz_test);
 	scan.build();
 	queue.enqueueCopy(h_inputs, d_input, 0, 0, sizeof(uint32_t)*sz_test);
-
-	PROFILING(scan.run(d_input, d_output), "scan()");
-	queue.enqueueCopy(d_output, h_outputs, 0, 0, sz_test * 4);
 	queue.waitIdle();
-	printf("%d ", h_outputs[sz_test-1]);
+	PROFILING(scan.run(d_input, d_output), "scan()");
+	queue.enqueueCopy(d_output, h_outputs, (sz_test-1)*4, 0, 4);
+	queue.waitIdle();
+	printf("prefix sum result : %d ", h_outputs[0]);
 	printf("\n");
 
 	delete d_input;

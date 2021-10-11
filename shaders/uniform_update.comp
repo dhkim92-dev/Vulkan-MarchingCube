@@ -4,7 +4,7 @@ layout(std430, binding = 0) buffer Source{
 	uvec4 dst[];
 };
 
-layout(std430, binding = 1) readonly buffer GroupSum{
+layout(binding = 1) buffer GroupSum{
 	uint group_sum[];
 };
 
@@ -13,15 +13,7 @@ void main(){
 	uint grp_id = gl_WorkGroupID.x;
 	if(grp_id != 0){
 		uvec4 data = dst[tid];
-		//data.x = dst[tid*4];
-		//data.y = dst[tid*4+1];
-		//data.z = dst[tid*4+2];
-		//data.w = dst[tid*4+3];
 		data += uvec4(group_sum[grp_id]);
 		dst[tid] = data;
-		// dst[tid*4] = data.x;
-		// dst[tid*4+1] = data.y;
-		// dst[tid*4+2] = data.z;
-		// dst[tid*4+3] = data.w;
 	}
 }
