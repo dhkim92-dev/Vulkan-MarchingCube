@@ -1,0 +1,3 @@
+[submodule "VKEngine"]
+	path = VKEngine
+	url = https://github.com/elensar92/VKEngine

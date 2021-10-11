@@ -1,0 +1,57 @@
+#version 450
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout (std430, binding=0) readonly buffer InBuffer{
+	uvec4 src[];
+};
+layout (std430, binding=1) writeonly buffer OutBuffer{
+	uvec4 dst[];
+};
+layout (std430, binding=2) writeonly buffer SumBuffer{
+	uint group_sum[];
+};
+layout (binding=3) uniform Limit{
+	uint limit;
+};
+
+shared uint buf[128];
+
+uint scan1(uint data){
+	uint lid = gl_LocalInvocationID.x;
+	uint lsz = gl_WorkGroupSize.x;
+
+	buf[lid] = 0;
+	lid += lsz;
+	buf[lid] = data;
+
+	for(uint i = 1 ; i < lsz ; i<<=1){
+		memoryBarrierShared();
+		barrier();
+		uint t = buf[lid] + buf[lid - i];
+		barrier();
+		memoryBarrierShared();
+		buf[lid] = t;
+	}
+
+	return buf[lid];
+}
+
+void main(){
+	uint id = gl_GlobalInvocationID.x;
+	if(id >= limit) return ;
+	uvec4 data = src[id];
+	data.y += data.x;
+	data.z += data.y;
+	data.w += data.z;
+
+	uint val = scan1(data.w);
+	dst[id] = data + uvec4(val - data.w);
+
+	if(id == 0){
+		group_sum[0] = 0;
+	}
+	
+	if(gl_LocalInvocationID.x == gl_WorkGroupSize.x - 1){
+		group_sum[gl_WorkGroupID.x + 1] = val;
+	}
+}
