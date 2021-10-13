@@ -43,7 +43,7 @@ int main(int argc, char* argv[]){
 	CommandQueue queue(&context, VK_QUEUE_COMPUTE_BIT);
 	Scan scan;
 
-	uint32_t sz_test = 128*128*64*4;
+	uint32_t sz_test = 128*128*64*3;
 	uint32_t *h_inputs = createTestData(sz_test);
 	uint32_t *h_outputs =	new uint32_t[sz_test];
 	Buffer *d_input = new Buffer(&context, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, sz_test*sizeof(uint32_t), nullptr);

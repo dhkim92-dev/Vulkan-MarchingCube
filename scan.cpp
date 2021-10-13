@@ -78,13 +78,15 @@ void Scan::setupBuffers(){
 }
 
 void Scan::setupDescriptorPool(){
-
+    LOG("setup Descriptor Pool\n");
 	VkDescriptorPoolSize pool_size[2] = {
 		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 8),
 		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
 	};
 	VkDescriptorPoolCreateInfo desc_pool_CI = infos::descriptorPoolCreateInfo(2, pool_size,  4);
 	VK_CHECK_RESULT(vkCreateDescriptorPool(VkDevice(*ctx), &desc_pool_CI, nullptr, &desc_pool));
+
+    LOG("setup Descriptor Pool Done\n");
 }
 
 void Scan::setupKernels(){
@@ -109,6 +111,7 @@ void Scan::setupKernels(){
 		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 0),
 		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1)
 	});
+    LOG("descriptor pool : %p \n", desc_pool);
 	LOG("scan allocate\n");
 	program.scan4.allocateDescriptorSet(desc_pool);
 	LOG("scan_ed allocate\n");
@@ -119,6 +122,8 @@ void Scan::setupKernels(){
 
 void Scan::build(){
 	uint32_t data[2] = {2*h_limits.back(), h_limits.back()};
+    LOG("scan_ed local_mem_size : %d\n", 4 * data[0]);
+    LOG("scan_ed local_dispatch_size : %d\n", data[1]);
 
 	VkSpecializationMapEntry scan_ed_map[2];
 	scan_ed_map[0].constantID = 1;
@@ -192,7 +197,7 @@ void Scan::run(Buffer *d_input, Buffer *d_output){
 				{3, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &d_limit.descriptor, nullptr}
 			});
 			queue->bindKernel(command, &program.scan4);
-			queue->dispatch(command, g_sizes[i], 1, 1);
+			queue->dispatch(command, (g_sizes[i]+63)/64, 1, 1);
 			// LOG("dispatch\n");
 			queue->endCommandBuffer(command);
 			queue->resetFences(&fence, 1);
@@ -235,7 +240,7 @@ void Scan::run(Buffer *d_input, Buffer *d_output){
 				{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_grps[i]->descriptor, nullptr},
 			});
 			queue->bindKernel(command, &program.uniform_update);
-			queue->dispatch(command, g_sizes[i], 1, 1);
+			queue->dispatch(command, (g_sizes[i]+63)/64, 1, 1);
 			queue->endCommandBuffer(command);
 			queue->resetFences(&fence, 1);
 			queue->submit(&command, 1, 0, nullptr, 0, nullptr, 0, fence);
