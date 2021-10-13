@@ -14,29 +14,34 @@ Scan::~Scan(){
 
 
 void Scan::destroy(){
+    LOG("Scan::destroy() called!\n");
 	if(cache){
+        LOG("cache destroy!\n");
 		VkDevice device = VkDevice(*ctx);
 		vkDestroyPipelineCache(device, cache, nullptr);
+        cache = VK_NULL_HANDLE;
 	}
-	//vkFreeDescriptorSets(device, desc_pool, 1, &program.scan4.descriptors.set);
-	//vkFreeDescriptorSets(device, desc_pool, 1, &program.scan_ed.descriptors.set);
-	//vkFreeDescriptorSets(device, desc_pool, 1, &program.uniform_update.descriptors.set);
-	program.scan4.destroy();
 	LOG("scan4 destroyed\n");
-	program.scan_ed.destroy();
+	program.scan4.destroy();
 	LOG("scan_ed destroyed\n");
-	program.uniform_update.destroy();
+	program.scan_ed.destroy();
 	LOG("uniform update destroyed\n");
+	program.uniform_update.destroy();
 
-	if(desc_pool != VK_NULL_HANDLE)
-	vkDestroyDescriptorPool(VkDevice(*ctx), desc_pool, nullptr);
-	desc_pool = VK_NULL_HANDLE;
-	LOG("descriptor Pool destroyed\n");
+	if(desc_pool != VK_NULL_HANDLE){
+        vkDestroyDescriptorPool(VkDevice(*ctx), desc_pool, nullptr);
+        desc_pool = VK_NULL_HANDLE;
+        LOG("descriptor Pool destroyed\n");
+    }
+    
 	for(uint32_t i = 0 ; i < d_grps.size() ; i++){
-		if(d_grps[i] != nullptr)
+		if(d_grps[i])
 			d_grps[i]->destroy();
 	}
+    d_grps.clear();
+    LOG("d_grps destroyed()\n");
 	d_limit.destroy();
+    LOG("d_limit destroyed()\n");
 }
 
 void Scan::create(Context *context, CommandQueue* command_queue){
