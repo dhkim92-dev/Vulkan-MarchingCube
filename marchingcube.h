@@ -15,35 +15,30 @@ private :
 	CommandQueue *queue = nullptr;
 	VkSemaphore compute_complete = VK_NULL_HANDLE;
 	VkDescriptorPool desc_pool = VK_NULL_HANDLE;
-
-	struct Volumes{
-		float *data;
-		int x,y,z;
-	}h_volume;
+	VkPipelineCache cache = VK_NULL_HANDLE;
+	VkFence fences[4] = {VK_NULL_HANDLE};
+	void *h_volume;
+	
+	struct MetaInfo{
+		uint32_t x,y,z;
+		float isovalue;
+	}meta_info;
 
 public :
+	// struct{
+	// 	Kernel kernel;
+	// 	Buffer d_output;
+	// 	VkCommandBuffer command;
+	// 	void destroy(){
+	// 		kernel.destroy();
+	// 		d_output.destroy();
+	// 	}
+	// }volume_test;
+	
 	struct{
 		Kernel kernel;
 		Buffer d_output;
-		void destroy(){
-			kernel.destroy();
-			d_output.destroy();
-		}
-	}volume_test;
-
-	struct{
-		Kernel kernel;
-		Buffer d_output;
-		
-		void destroy(){
-			kernel.destroy();
-			d_output.destroy();
-		}
-	}cell_test;
-
-	struct{
-		Kernel kernel;
-		Buffer d_output;
+		VkCommandBuffer command = VK_NULL_HANDLE;
 		void destroy(){
 			kernel.destroy();
 			d_output.destroy();
@@ -52,10 +47,21 @@ public :
 
 	struct{
 		Kernel kernel;
-		Buffer d_table;
+		Buffer d_celltype;
+		Buffer d_tricount;
+		VkCommandBuffer command = VK_NULL_HANDLE;
 		void destroy(){
 			kernel.destroy();
-			d_table.destroy();
+			d_celltype.destroy();
+			d_tricount.destroy();
+		}
+	}cell_test;
+
+	struct{
+		Kernel kernel;
+		VkCommandBuffer command = VK_NULL_HANDLE;
+		void destroy(){
+			kernel.destroy();
 		}
 	}edge_compact;
 
@@ -65,6 +71,11 @@ public :
 
 	Scan cell_scan;
 	Scan edge_scan;
+
+	struct PrefixSum{
+		Buffer d_epsum;
+		Buffer d_cpsum;
+	}scan;
 	
 	struct{
 		Buffer vertices;
@@ -78,9 +89,10 @@ public :
 
 	struct{
 		Buffer d_cast_table;
-		Image volume;
-
+		Buffer d_metainfo;
+		Image d_volume;
 	}general;
+	
 
 public :
 	MarchingCube();
@@ -88,15 +100,17 @@ public :
 	~MarchingCube();
 	void create(Context *context, CommandQueue *commandQueue);
 	void destroy();
-	void setVolume(float *data, int x, int y, int z);
+	void destroyBuffers();
+	void setVolumeSize(uint32_t x, uint32_t y, uint32_t z);
+	void setIsovalue(float value);
+	void setVolume(void *ptr);
 	void setupBuffers();
 	void setupDescriptorPool();
 	void setupKernels();
 	void setupCommandBuffers();
-	void volumeTest();
-	void edgeTest();
-	void cellTest();
-	void edgeCompact();
+	void setupEdgeTestCommand();
+	void setupCellTestCommand();
+	void setupEdgeCompactCommand();
 	void genVertices();
 	void genFaces();
 	void run();

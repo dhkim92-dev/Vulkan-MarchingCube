@@ -1,0 +1,26 @@
+#version 450
+layout(local_size_x = 4 , local_size_y=4, local_size_z = 4) in;
+layout(binding = 0) readonly buffer EdgeType{
+	uint d_edge_type[];
+};
+layout(binding = 1) readonly buffer EdgeScan{
+	uint d_edgescan[];
+};
+layout(binding = 2) writeonly buffer D_DST{
+	uint d_output[];
+};
+
+layout(binding = 3) uniform MetaInfo{
+	uint x;
+	uint y;
+	uint z;
+	float isovalue;
+}meta;
+
+void main(){
+	uint limit = meta.x * meta.y * meta.z * 3;
+	uvec3 tid = gl_WorkGroupID.xyz * gl_WorkGroupSize.xyz + gl_LocalInvocationID.xyz;
+	uint idx = tid.x + tid.y * meta.x + tid.z * (meta.x * meta.y);
+	if( (3*idx) >= limit || d_edge_type[idx] == 0 ) return;
+	d_output[(d_edgescan[idx]-1)*3]  = idx;
+}
