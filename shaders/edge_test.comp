@@ -12,14 +12,14 @@ layout(binding = 2) uniform MetaInfo{
 }meta;
 
 void main(){
-	uvec3 pos = gl_WorkGroupID.xyz * gl_WorkGroupSize.xyz + gl_LocalInvocationID.xyz;
-	uint idx = pos.x + pos.y * meta.x + pos.z*(meta.x*meta.y);
+	uvec3 pos = gl_WorkGroupID * gl_WorkGroupSize + gl_LocalInvocationID;
+	uint idx = pos.x + pos.y * meta.x + pos.z*meta.x*meta.y;
 	vec3 dim = vec3(meta.x , meta.y, meta.z);
 	if(idx >= meta.x * meta.y * meta.z) return;
 	idx = idx*3;
 	float iso = meta.isovalue;
-	bool vol = texture(in_sampler, pos).x > iso;
-	d_output[idx+0] = uint(vol  ^^  (texture(in_sampler, vec3(pos + vec3(1,0,0))/dim).x > iso) );
-	d_output[idx+1] = uint(vol  ^^  (texture(in_sampler, vec3(pos + vec3(0,1,0))/dim).x > iso) );
-	d_output[idx+2] = uint(vol  ^^  (texture(in_sampler, vec3(pos + vec3(0,0,1))/dim).x > iso) );
+	bool vol = texture(in_sampler, vec3(pos)/dim).x > iso;
+	d_output[idx+0] = uint(vol  ^^  (texture(in_sampler, vec3(pos + uvec3(1,0,0))/dim).x > iso) );
+	d_output[idx+1] = uint(vol  ^^  (texture(in_sampler, vec3(pos + uvec3(0,1,0))/dim).x > iso) );
+	d_output[idx+2] = uint(vol  ^^  (texture(in_sampler, vec3(pos + uvec3(0,0,1))/dim).x > iso) );
 }

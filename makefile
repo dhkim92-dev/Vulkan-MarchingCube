@@ -8,11 +8,11 @@ CFLAGS=--std=c++17
 $(TARGET) : $(TARGET).cpp $(DEPENDENCIES)
 	$(CC) $(CFLAGS) $(INCLUDE_PATH) $(LDFLAGS) -o $(TARGET).out $(TARGET).cpp $(DEPENDENCIES)
 
-scan.o :
-	$(CC) $(CFLAGS) $(INCLUDE_PATH) -c scan.cpp
+scan.o : scan.cpp
+	$(CC) $(CFLAGS) $(INCLUDE_PATH) -c $^
 
-marchingcube.o :
-	$(CC) $(CFLAGS) $(INCLUDE_PATH) -c marchingcube.cpp
+marchingcube.o : marchingcube.cpp
+	$(CC) $(CFLAGS) $(INCLUDE_PATH) -c $^
 
 clean : 
 	rm *.o

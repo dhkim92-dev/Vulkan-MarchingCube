@@ -39,11 +39,23 @@ void loadVolume(const char *file_path, uint32_t mem_size, void *data)
 
 uint32_t * createTestData(uint32_t nr_elem){
 	uint32_t *data = new uint32_t[nr_elem];
-
 	for(uint32_t i = 0 ; i < nr_elem; ++i)
 		data[i] = 1;
-
 	return data;
+}
+
+void saveAsObj(const char *path, float *vertices, uint32_t* faces, uint32_t nr_vertices, uint32_t nr_faces){
+	ofstream os(path);
+
+	for(uint32_t i = 0 ; i < nr_vertices ; i++){
+		os << "v " << vertices[i*3] << " " << vertices[i*3+1] << " " << vertices[i*3+2] << endl;
+	}
+
+	for(uint32_t i = 0 ; i < nr_faces ; i++){
+		os << "f " << faces[i*3] + 1 << " " << faces[i*3+1] + 1 << " " << faces[i*3+2] + 1<< endl;
+	}
+
+	os.close();
 }
 
 int main(int argc, char* argv[]){
@@ -68,17 +80,21 @@ int main(int argc, char* argv[]){
 	uint32_t *h_tricount = new uint32_t[128*128*64];
 	uint32_t h_edgescan, h_cellscan;
 	loadVolume("data/dragon_vrip_FLT32_128_128_64.raw", 128*128*64*sizeof(float), (void *)data);
+	// for(int i = 0 ; i < 128*128*64 ; i++){
+		// data[i] = 0.0;
+	// }
+	// data[1 + 128 + 128*128] = 0.5;
 	mc.setVolumeSize(128,128,64);
 	mc.setupDescriptorPool();
 	mc.setupBuffers();
 	mc.setVolume((void *)data);
-	mc.setIsovalue(0.0f);
+	mc.setIsovalue(0.02f);
 	LOG("setup Kernels\n");
 	mc.setupKernels();
 	LOG("setup Kernel done\n");
 	mc.setupCommandBuffers();
 	LOG("marching cube run!\n");
-	mc.run();
+	PROFILING(mc.run(), "marching_cube");
 	LOG("enqueueCopy start!\n");
 	queue.enqueueCopy(&mc.edge_test.d_output, h_edgetype, 0, 0, 128*128*64*3*sizeof(uint32_t), false);
 	queue.enqueueCopy(&mc.cell_test.d_tricount, h_tricount, 0, 0, 128*128*64*sizeof(uint32_t), false);
@@ -86,7 +102,11 @@ int main(int argc, char* argv[]){
 	queue.enqueueCopy(&mc.scan.d_cpsum, &h_cellscan, sizeof(uint32_t) * 128*128*64 - 4, 0, 4, false);
 	mc.general.d_metainfo.copyTo(&dim, sizeof(MetaInfo2));
 	queue.waitIdle();
-
+	float *vertices = new float[ 3 * h_edgescan ];
+	uint32_t *faces = new uint32_t[h_cellscan*3];
+	queue.enqueueCopy(&mc.outputs.vertices, vertices, 0, 0, h_edgescan*sizeof(float)*3);
+	queue.enqueueCopy(&mc.outputs.indices, faces, 0, 0, h_cellscan*sizeof(uint32_t)*3);
+	queue.waitIdle();
 	uint32_t nr_triangle = 0, nr_edge = 0;
 	for(uint32_t i = 0 ; i < 128*128*64*3 ; i++ ){
 		nr_edge += h_edgetype[i];
@@ -99,7 +119,10 @@ int main(int argc, char* argv[]){
 	LOG("Host Edge Count : %d\n", nr_edge);
 	LOG("GPU Edge Scan : %d\n", h_edgescan);
 	LOG("GPU Cell Scan : %d\n", h_cellscan);
+	LOG("Save As Object\n");
+	saveAsObj("test.obj", vertices , faces, h_edgescan,h_cellscan);
 
+	delete [] vertices;
 	delete [] data;
 	delete [] h_edgetype;
 	delete [] h_tricount;

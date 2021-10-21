@@ -65,9 +65,23 @@ public :
 		}
 	}edge_compact;
 
-	Kernel gen_vertices;
-	Kernel gen_faces;
-	Kernel gen_vnorm;
+	struct GenFaces{
+		Kernel kernel;
+		VkCommandBuffer command = VK_NULL_HANDLE;
+		Buffer d_cast_table;
+	}gen_faces;
+
+	struct GenVertexNormal{
+		Kernel kernel;
+	}gen_vnorm;
+
+	struct GenVertex{
+		Kernel kernel;
+		VkCommandBuffer command = VK_NULL_HANDLE;
+		void destroy(){
+			kernel.destroy();
+		}
+	}gen_vertices;
 
 	Scan cell_scan;
 	Scan edge_scan;
@@ -111,6 +125,8 @@ public :
 	void setupEdgeTestCommand();
 	void setupCellTestCommand();
 	void setupEdgeCompactCommand();
+	void setupGenVerticesCommand();
+	void setupGenFacesCommand();
 	void genVertices();
 	void genFaces();
 	void run();

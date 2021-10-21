@@ -135,18 +135,40 @@ void MarchingCube::setupBuffers(){
 	outputs.vertices.create(ctx, 
 							VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 							VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-							(meta_info.x * meta_info.y * meta_info.z * sizeof(float) * 3 )/4, nullptr);
+							(meta_info.x * meta_info.y * meta_info.z * sizeof(float) * 3), nullptr);
 	outputs.indices.create(ctx, 
 							VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 							VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 							meta_info.x * meta_info.y * meta_info.z, nullptr);
+
+	uint32_t h_cast_table[12] = {
+		0,
+		4,
+		meta_info.x*3,
+		1,
+		3*meta_info.x*meta_info.y,
+		3*(meta_info.x*meta_info.y + 1) + 1,
+		3*(meta_info.x*meta_info.y + meta_info.x),
+		3*(meta_info.x*meta_info.y) + 1,
+		2,
+		5,
+		3*(meta_info.x+ 1) + 2,
+		3*meta_info.x + 2
+	};
+
+	general.d_cast_table.create(ctx,
+						VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+						VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+						12*sizeof(uint32_t), nullptr);
+	queue->enqueueCopy(h_cast_table, &general.d_cast_table, 0, 0, sizeof(uint32_t) * 12);
+	
 }
 
 void MarchingCube::setupDescriptorPool(){
 	vector<VkDescriptorPoolSize> pool_sizes = {
-		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4),
-		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 9),
-		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4)
+		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3),
+		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 15),
+		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 6)
 	};
 	VkDescriptorPoolCreateInfo desc_pool_CI = infos::descriptorPoolCreateInfo(
 		static_cast<uint32_t>(pool_sizes.size()),
@@ -165,9 +187,12 @@ void MarchingCube::setupKernels(){
 	LOG("MarchingCube::setupKernel()\n");
 	edge_test.kernel.create(ctx, "shaders/edge_test.comp.spv");
 	cell_test.kernel.create(ctx, "shaders/cell_test.comp.spv");
-	edge_compact.kernel.create(ctx, "shaders/edge_test.comp.spv");
+	edge_compact.kernel.create(ctx, "shaders/edge_compact.comp.spv");
+	gen_vertices.kernel.create(ctx, "shaders/gen_vertices.comp.spv");
+	gen_faces.kernel.create(ctx, "shaders/gen_faces.comp.spv");
 	edge_scan.create(ctx, queue);
 	cell_scan.create(ctx, queue);
+
 	LOG("MarchingCube::setupDescriptorLayout()\n");
 	edge_test.kernel.setupDescriptorSetLayout({
 		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT, 0),
@@ -186,6 +211,22 @@ void MarchingCube::setupKernels(){
 		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 2),
 		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 3)
 	});
+	gen_vertices.kernel.setupDescriptorSetLayout({
+		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 0),
+		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_COMPUTE_BIT, 1),
+		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 2),
+		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 3),
+		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 4),
+	});
+	gen_faces.kernel.setupDescriptorSetLayout({
+		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 0),
+		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1),
+		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 2),
+		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 3),
+		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 4),
+		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 5),
+		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 6),
+	});
 
 
 	edge_scan.init(meta_info.x * meta_info.y * meta_info.z * 3);
@@ -194,15 +235,18 @@ void MarchingCube::setupKernels(){
 	edge_test.kernel.allocateDescriptorSet(desc_pool);
 	cell_test.kernel.allocateDescriptorSet(desc_pool);
 	edge_compact.kernel.allocateDescriptorSet(desc_pool);
+	gen_vertices.kernel.allocateDescriptorSet(desc_pool);
+	gen_faces.kernel.allocateDescriptorSet(desc_pool);
 
 	LOG("MachingCube::buildKernels()\n");
 	edge_test.kernel.build(cache, nullptr);
 	cell_test.kernel.build(cache, nullptr);
 	edge_compact.kernel.build(cache, nullptr);
+	gen_vertices.kernel.build(cache, nullptr);
+	gen_faces.kernel.build(cache, nullptr);
 	edge_scan.build();
 	cell_scan.build();
 	LOG("MarchingCube::setupKernel() end()\n");
-	
 }
 
 void MarchingCube::destroy(){
@@ -254,8 +298,39 @@ void MarchingCube::setupEdgeCompactCommand(){
 		{3, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &general.d_metainfo.descriptor, nullptr},
 	});
 	queue->bindKernel(edge_compact.command, &edge_compact.kernel);
-	queue->dispatch(edge_compact.command, (meta_info.x+3) / 4, (meta_info.y+3) / 4, (meta_info.z+3)/4);
+	queue->dispatch(edge_compact.command, (3*meta_info.x+3)/4, (meta_info.y+3)/4, (meta_info.z+3/4));
 	queue->endCommandBuffer(edge_compact.command);
+}
+
+void MarchingCube::setupGenVerticesCommand(){
+	gen_vertices.command = queue->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, 0, true);
+	gen_vertices.kernel.setKernelArgs({
+		{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &outputs.vertices.descriptor, nullptr},
+		{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, nullptr, &general.d_volume.descriptor},
+		{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &outputs.vertices.descriptor, nullptr},
+		{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &scan.d_epsum.descriptor, nullptr},
+		{4, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &general.d_metainfo.descriptor, nullptr},
+	});
+	queue->bindKernel(gen_vertices.command, &gen_vertices.kernel);
+	queue->dispatch(gen_vertices.command, (3*meta_info.x*meta_info.y*meta_info.z + 31) / 32, 1,1);
+	queue->endCommandBuffer(gen_vertices.command);
+}
+
+void MarchingCube::setupGenFacesCommand(){
+	gen_faces.command = queue->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, 0, true);
+	gen_faces.kernel.setKernelArgs({
+		{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &outputs.indices.descriptor, nullptr},
+		{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &cell_test.d_celltype.descriptor, nullptr},
+		{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &cell_test.d_tricount.descriptor, nullptr},
+		{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &scan.d_cpsum.descriptor, nullptr},
+		{4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &scan.d_epsum.descriptor, nullptr},
+		{5, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &general.d_cast_table.descriptor, nullptr},
+		{6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &general.d_metainfo.descriptor, nullptr}
+	});
+	queue->bindKernel(gen_faces.command, &gen_faces.kernel);
+	// queue->dispatch(gen_faces.command, (meta_info.x + 3)/4, (meta_info.y+3)/4, (meta_info.z+3)/4);
+	queue->dispatch(gen_faces.command, (meta_info.x+3)/4, (meta_info.y+3)/4, (meta_info.z+3)/4);
+	queue->endCommandBuffer(gen_faces.command);
 }
 
 void MarchingCube::setupCommandBuffers(){
@@ -263,6 +338,8 @@ void MarchingCube::setupCommandBuffers(){
 	setupEdgeTestCommand();
 	setupCellTestCommand();
 	setupEdgeCompactCommand();
+	setupGenVerticesCommand();
+	setupGenFacesCommand();
 }
 
 void MarchingCube::run(){
@@ -276,9 +353,18 @@ void MarchingCube::run(){
 
 	edge_scan.run(&edge_test.d_output, &scan.d_epsum);
 	cell_scan.run(&cell_test.d_tricount, &scan.d_cpsum);
-
+	//queue->waitIdle();
 	queue->resetFences(&fences[0], 1);
 	queue->submit(&edge_compact.command, 1, 0 , nullptr, 0, nullptr, 0, fences[0]);
+	queue->waitFences(&fences[0], 1);
+	//queue->waitIdle();
+	// gen 
+	VkCommandBuffer gen[2] = {
+		gen_vertices.command,
+		gen_faces.command
+	};
+	queue->resetFences(&fences[0], 1);
+	queue->submit(gen, 2, 0, nullptr, 0, nullptr, 0, fences[0]);
 	queue->waitFences(&fences[0], 1);
 }
 
