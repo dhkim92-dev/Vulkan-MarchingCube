@@ -324,7 +324,7 @@ void MarchingCube::setupGenFacesCommand(){
 		{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &cell_test.d_tricount.descriptor, nullptr},
 		{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &scan.d_cpsum.descriptor, nullptr},
 		{4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &scan.d_epsum.descriptor, nullptr},
-		{5, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &general.d_cast_table.descriptor, nullptr},
+		{5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &general.d_cast_table.descriptor, nullptr},
 		{6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &general.d_metainfo.descriptor, nullptr}
 	});
 	queue->bindKernel(gen_faces.command, &gen_faces.kernel);
