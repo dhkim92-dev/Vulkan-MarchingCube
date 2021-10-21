@@ -312,7 +312,7 @@ void MarchingCube::setupGenVerticesCommand(){
 		{4, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &general.d_metainfo.descriptor, nullptr},
 	});
 	queue->bindKernel(gen_vertices.command, &gen_vertices.kernel);
-	queue->dispatch(gen_vertices.command, (3*meta_info.x*meta_info.y*meta_info.z + 31) / 32, 1,1);
+	queue->dispatch(gen_vertices.command, (3*meta_info.x + 3)/4, (meta_info.y+3)/4,(meta_info.z+3)/4);
 	queue->endCommandBuffer(gen_vertices.command);
 }
 

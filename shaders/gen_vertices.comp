@@ -1,5 +1,5 @@
 #version 450
-layout(local_size_x=32, local_size_y=1, local_size_z=1) in;
+layout(local_size_x=4, local_size_y=4, local_size_z=4) in;
 
 layout(std430, binding = 0) writeonly buffer Vertices{
 	float d_dst[];
@@ -25,7 +25,9 @@ uvec3 idx2pos(uint idx){
 }
 
 void main(){
-	uint thread_id = (gl_WorkGroupSize * gl_WorkGroupID + gl_LocalInvocationID).x;
+	//uint thread_id = (gl_WorkGroupSize * gl_WorkGroupID + gl_LocalInvocationID).x;
+	uvec3 pos = gl_WorkGroupSize * gl_WorkGroupID + gl_LocalInvocationID;
+	uint thread_id = pos.x + pos.y *3* dim.x + pos.z * 3* dim.x * dim.y;
 	if(thread_id > edge_scan[3*dim.x*dim.y*dim.z - 1]) return ;
 	uint edge_id = edge_compact[thread_id * 3];
 	uint dir = edge_id % 3;
