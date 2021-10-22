@@ -14,24 +14,24 @@ Scan::~Scan(){
 
 
 void Scan::destroy(){
-    LOG("Scan::destroy() called!\n");
+    // LOG("Scan::destroy() called!\n");
 	if(cache){
-        LOG("cache destroy!\n");
+        // LOG("cache destroy!\n");
 		VkDevice device = VkDevice(*ctx);
 		vkDestroyPipelineCache(device, cache, nullptr);
         cache = VK_NULL_HANDLE;
 	}
-	LOG("scan4 destroyed\n");
+	// LOG("scan4 destroyed\n");
 	program.scan4.destroy();
-	LOG("scan_ed destroyed\n");
+	// LOG("scan_ed destroyed\n");
 	program.scan_ed.destroy();
-	LOG("uniform update destroyed\n");
+	// LOG("uniform update destroyed\n");
 	program.uniform_update.destroy();
 
 	if(desc_pool != VK_NULL_HANDLE){
         vkDestroyDescriptorPool(VkDevice(*ctx), desc_pool, nullptr);
         desc_pool = VK_NULL_HANDLE;
-        LOG("descriptor Pool destroyed\n");
+        // LOG("descriptor Pool destroyed\n");
     }
     
 	for(uint32_t i = 0 ; i < d_grps.size() ; i++){
@@ -39,9 +39,9 @@ void Scan::destroy(){
 			d_grps[i]->destroy();
 	}
     d_grps.clear();
-    LOG("d_grps destroyed()\n");
+    // LOG("d_grps destroyed()\n");
 	d_limit.destroy();
-    LOG("d_limit destroyed()\n");
+    // LOG("d_limit destroyed()\n");
 }
 
 void Scan::create(Context *context, CommandQueue* command_queue){
@@ -68,7 +68,7 @@ void Scan::setupBuffers(){
 		g_sizes.push_back( (g_siz + sm - 1) / sm * sm );
 		l_sizes.push_back( sm );
 		size = (g_siz + sm - 1) / sm;
-		d_grps.push_back( new Buffer(ctx, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
+		d_grps.push_back( new Buffer(ctx, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, 
 									VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 									(size + 1) * sizeof(uint32_t), nullptr) );
 	}
@@ -83,7 +83,7 @@ void Scan::setupBuffers(){
 }
 
 void Scan::setupDescriptorPool(){
-    LOG("setup Descriptor Pool\n");
+    // LOG("setup Descriptor Pool\n");
 	VkDescriptorPoolSize pool_size[2] = {
 		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 8),
 		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
@@ -91,7 +91,7 @@ void Scan::setupDescriptorPool(){
 	VkDescriptorPoolCreateInfo desc_pool_CI = infos::descriptorPoolCreateInfo(2, pool_size,  4);
 	VK_CHECK_RESULT(vkCreateDescriptorPool(VkDevice(*ctx), &desc_pool_CI, nullptr, &desc_pool));
 
-    LOG("setup Descriptor Pool Done\n");
+    // LOG("setup Descriptor Pool Done\n");
 }
 
 void Scan::setupKernels(){
@@ -116,19 +116,19 @@ void Scan::setupKernels(){
 		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 0),
 		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1)
 	});
-    LOG("descriptor pool : %p \n", desc_pool);
-	LOG("scan allocate\n");
+    // LOG("descriptor pool : %p \n", desc_pool);
+	// LOG("scan allocate\n");
 	program.scan4.allocateDescriptorSet(desc_pool);
-	LOG("scan_ed allocate\n");
+	// LOG("scan_ed allocate\n");
 	program.scan_ed.allocateDescriptorSet(desc_pool);
-	LOG("uniform_update allocate\n");
+	// LOG("uniform_update allocate\n");
 	program.uniform_update.allocateDescriptorSet(desc_pool);
 }
 
 void Scan::build(){
 	uint32_t data[2] = {2*h_limits.back(), h_limits.back()};
-    LOG("scan_ed local_mem_size : %d\n", 4 * data[0]);
-    LOG("scan_ed local_dispatch_size : %d\n", data[1]);
+    // LOG("scan_ed local_mem_size : %d\n", 4 * data[0]);
+    // LOG("scan_ed local_dispatch_size : %d\n", data[1]);
 
 	VkSpecializationMapEntry scan_ed_map[2];
 	scan_ed_map[0].constantID = 1;
@@ -155,10 +155,10 @@ void Scan::build(){
 
 void Scan::run(Buffer *d_input, Buffer *d_output){
 	VkFence fence = queue->createFence(VK_FENCE_CREATE_SIGNALED_BIT);
-	LOG("fence created \n");
+	// LOG("fence created \n");
 	vector<Buffer *> d_inputs = {d_input};
 	vector<Buffer *> d_outputs = {d_output};
-	LOG("Buffer initialized\n");
+	// LOG("Buffer initialized\n");
 	for(uint32_t i = 0 ; i < d_grps.size(); i++){
 		if(d_grps[i] != nullptr){
 			d_inputs.push_back(d_grps[i]);
@@ -167,32 +167,44 @@ void Scan::run(Buffer *d_input, Buffer *d_output){
 	}
 
 
-	printf("d_inputs : ");
-	for(uint32_t i = 0 ; i < d_inputs.size() ; i++){
-		printf("%p ", d_inputs[i]);
-	}
-	printf("\nd_outputs : ");
-	for(uint32_t i = 0 ; i < d_outputs.size() ; i++){
-		printf("%p ", d_outputs[i]);
-	}
+	// printf("d_inputs : ");
+	// for(uint32_t i = 0 ; i < d_inputs.size() ; i++){
+	// 	printf("%p ", d_inputs[i]);
+	// }
+	// printf("\nd_outputs : ");
+	// for(uint32_t i = 0 ; i < d_outputs.size() ; i++){
+	// 	printf("%p ", d_outputs[i]);
+	// }
 	
-	printf("\nd_grps : ");
-	for(uint32_t i = 0 ; i < d_grps.size() ; i++){
-		printf("%p ", d_grps[i]);
-	}
-	printf("\n");
+	// printf("\nd_grps : ");
+	// for(uint32_t i = 0 ; i < d_grps.size() ; i++){
+	// 	printf("%p ", d_grps[i]);
+	// }
+	// printf("\n");
 
-	printf("\ng_sizes : ");
-	for(uint32_t i = 0 ; i < g_sizes.size() ; i++){
-		printf("%d ", g_sizes[i]);
-	}
-	printf("\n");
+	// printf("\ng_sizes : ");
+	// for(uint32_t i = 0 ; i < g_sizes.size() ; i++){
+	// 	printf("%d ", g_sizes[i]);
+	// }
+	// printf("\n");
 
 	vector<VkCommandBuffer> used_buffers;
-	LOG("GPUProcess start!\n");
+	VkCommandBuffer init_memory_command = queue->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, true);
+	vkCmdFillBuffer(init_memory_command, VkBuffer(*d_output), 0, VkDeviceSize(*d_output), 0);
+	for(uint32_t i = 0 ; i < d_grps.size() ; i++){
+		if(d_grps[i]!=nullptr)
+			vkCmdFillBuffer(init_memory_command, VkBuffer(*d_grps[i]), 0, VkDeviceSize(*d_grps[i]), 0);
+	}
+	queue->endCommandBuffer(init_memory_command);
+	queue->resetFences(&fence, 1);
+	queue->submit(&init_memory_command, 1, 0, nullptr, 0 ,nullptr, 0 , fence);
+	queue->waitFences(&fence, 1);
+	queue->waitIdle();
+	used_buffers.push_back(init_memory_command);
+
 	for(uint32_t i = 0 ; i < d_grps.size() ; ++i){
 		if(d_grps[i] != nullptr){
-			LOG("Scan4\n");
+			// LOG("Scan4\n");
 			VkCommandBuffer command = queue->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, true);
 			d_limit.copyFrom(&h_limits[i], 4);
 			program.scan4.setKernelArgs({
@@ -214,7 +226,7 @@ void Scan::run(Buffer *d_input, Buffer *d_output){
 			// LOG("free command buffer\n");
 
 		}else{
-			LOG("scan_ed\n");
+			// LOG("scan_ed\n");
 			VkCommandBuffer command = queue->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, true);
 			program.scan_ed.setKernelArgs({
 				{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_inputs[i]->descriptor, nullptr},
@@ -235,11 +247,11 @@ void Scan::run(Buffer *d_input, Buffer *d_output){
 
 	int nr_g = (int)d_grps.size();
 	for(int i = nr_g-1; i >= 0 ; --i){
-		LOG("uniform update %d start\n", i);
+		// LOG("uniform update %d start\n", i);
 		if(d_grps[i] != nullptr){
-			LOG("uniform_update d_grps : %p\n",d_grps[i]);
+			// LOG("uniform_update d_grps : %p\n",d_grps[i]);
 			VkCommandBuffer command = queue->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, true);
-			LOG("command buffer create done\n");
+			// LOG("command buffer create done\n");
 			program.uniform_update.setKernelArgs({
 				{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_outputs[i]->descriptor, nullptr},
 				{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_grps[i]->descriptor, nullptr},
@@ -258,7 +270,8 @@ void Scan::run(Buffer *d_input, Buffer *d_output){
 	for(auto cmd : used_buffers){
 		queue->free(cmd);
 	}
-	LOG("scan process done\n");
+	used_buffers.clear();
+	// LOG("scan process done\n");
 }
 
 
