@@ -252,7 +252,11 @@ void MarchingCube::setupKernels(){
 void MarchingCube::destroy(){
 	VkDevice device = VkDevice(*ctx);
 	destroyBuffers();
-	
+	destroyKernels();
+	freeCommandBuffers();
+	if(fence)
+		queue->destroyFence(fence);
+		fence = VK_NULL_HANDLE;
 	if(desc_pool){
 		vkDestroyDescriptorPool(device, desc_pool, nullptr);
 		desc_pool = VK_NULL_HANDLE;
@@ -262,6 +266,7 @@ void MarchingCube::destroy(){
 		vkDestroyPipelineCache(device, cache,nullptr);
 		cache = VK_NULL_HANDLE;
 	}
+
 }
 
 void MarchingCube::setupEdgeTestCommand(){
@@ -334,7 +339,7 @@ void MarchingCube::setupGenFacesCommand(){
 }
 
 void MarchingCube::setupCommandBuffers(){
-	fences[0] = queue->createFence();
+	fence = queue->createFence();
 	setupEdgeTestCommand();
 	setupCellTestCommand();
 	setupEdgeCompactCommand();
@@ -347,29 +352,90 @@ void MarchingCube::run(){
 		edge_test.command,
 		cell_test.command
 	};
-	queue->resetFences(&fences[0],1);
-	queue->submit(testing, 2, 0, nullptr, 0, nullptr, 0, fences[0]);
-	queue->waitFences(&fences[0],1);
+	queue->resetFences(&fence,1);
+	queue->submit(testing, 2, 0, nullptr, 0, nullptr, 0, fence);
+	queue->waitFences(&fence,1);
 
 	edge_scan.run(&edge_test.d_output, &scan.d_epsum);
 	cell_scan.run(&cell_test.d_tricount, &scan.d_cpsum);
 	//queue->waitIdle();
-	queue->resetFences(&fences[0], 1);
-	queue->submit(&edge_compact.command, 1, 0 , nullptr, 0, nullptr, 0, fences[0]);
-	queue->waitFences(&fences[0], 1);
+	queue->resetFences(&fence, 1);
+	queue->submit(&edge_compact.command, 1, 0 , nullptr, 0, nullptr, 0, fence);
+	queue->waitFences(&fence, 1);
 	//queue->waitIdle();
 	// gen 
 	VkCommandBuffer gen[2] = {
 		gen_vertices.command,
 		gen_faces.command
 	};
-	queue->resetFences(&fences[0], 1);
-	queue->submit(gen, 2, 0, nullptr, 0, nullptr, 0, fences[0]);
-	queue->waitFences(&fences[0], 1);
+	queue->resetFences(&fence, 1);
+	queue->submit(gen, 2, 0, nullptr, 0, nullptr, 0, fence);
+	queue->waitFences(&fence, 1);
 }
 
 void MarchingCube::destroyBuffers(){
+	LOG("MarchingCube::destroyBuffers()\n");
 	general.d_volume.destroy();
+	general.d_metainfo.destroy();
+	general.d_cast_table.destroy();
+	edge_test.d_output.destroy();
+	cell_test.d_celltype.destroy();
+	cell_test.d_tricount.destroy();
+	scan.d_cpsum.destroy();
+	scan.d_epsum.destroy();
+	outputs.vertices.destroy();
+	outputs.indices.destroy();
+}
+
+void MarchingCube::destroyKernels(){
+	LOG("MarchingCube::destroyKernels()\n");
+	VkDevice device = VkDevice(*ctx);
+	VkDescriptorSet sets[5] = {
+		edge_test.kernel.descriptors.set,
+		cell_test.kernel.descriptors.set,
+		edge_compact.kernel.descriptors.set,
+		gen_faces.kernel.descriptors.set,
+		gen_vertices.kernel.descriptors.set,
+	};
+
+	for(uint32_t i = 0 ; i <5 ; i++){
+		if(sets[i] != VK_NULL_HANDLE)
+			vkFreeDescriptorSets(device, desc_pool, 1, &sets[i]);
+	}
+	edge_test.kernel.descriptors.set = VK_NULL_HANDLE;
+	cell_test.kernel.descriptors.set = VK_NULL_HANDLE;
+	edge_compact.kernel.descriptors.set =VK_NULL_HANDLE;
+	gen_faces.kernel.descriptors.set = VK_NULL_HANDLE;
+	gen_vertices.kernel.descriptors.set = VK_NULL_HANDLE;
+
+	cell_scan.destroy();
+	edge_scan.destroy();
+	edge_test.kernel.destroy();
+	cell_test.kernel.destroy();
+	edge_compact.kernel.destroy();
+	gen_vertices.kernel.destroy();
+	gen_faces.kernel.destroy();
+}
+
+void MarchingCube::freeCommandBuffers(){
+	LOG("MarchingCube::freeCommandBuffers()\n");
+	VkDevice device = VkDevice(*ctx);
+	VkCommandBuffer commands[5] = {
+		edge_test.command,
+		cell_test.command,
+		edge_compact.command,
+		gen_vertices.command,
+		gen_faces.command
+	};
+	for(uint32_t i = 0 ; i < 5 ; i++){
+		if(commands[i])
+			queue->free(commands[i]);
+	}
+	edge_test.command=VK_NULL_HANDLE;
+	cell_test.command=VK_NULL_HANDLE;
+	edge_compact.command = VK_NULL_HANDLE;
+	gen_vertices.command = VK_NULL_HANDLE;
+	gen_faces.command = VK_NULL_HANDLE;
 }
 
 

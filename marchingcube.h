@@ -16,7 +16,7 @@ private :
 	VkSemaphore compute_complete = VK_NULL_HANDLE;
 	VkDescriptorPool desc_pool = VK_NULL_HANDLE;
 	VkPipelineCache cache = VK_NULL_HANDLE;
-	VkFence fences[4] = {VK_NULL_HANDLE};
+	VkFence fence;
 	void *h_volume;
 	
 	struct MetaInfo{
@@ -39,10 +39,6 @@ public :
 		Kernel kernel;
 		Buffer d_output;
 		VkCommandBuffer command = VK_NULL_HANDLE;
-		void destroy(){
-			kernel.destroy();
-			d_output.destroy();
-		}
 	}edge_test;
 
 	struct{
@@ -50,37 +46,21 @@ public :
 		Buffer d_celltype;
 		Buffer d_tricount;
 		VkCommandBuffer command = VK_NULL_HANDLE;
-		void destroy(){
-			kernel.destroy();
-			d_celltype.destroy();
-			d_tricount.destroy();
-		}
 	}cell_test;
 
 	struct{
 		Kernel kernel;
 		VkCommandBuffer command = VK_NULL_HANDLE;
-		void destroy(){
-			kernel.destroy();
-		}
 	}edge_compact;
 
 	struct GenFaces{
 		Kernel kernel;
 		VkCommandBuffer command = VK_NULL_HANDLE;
-		Buffer d_cast_table;
 	}gen_faces;
-
-	struct GenVertexNormal{
-		Kernel kernel;
-	}gen_vnorm;
 
 	struct GenVertex{
 		Kernel kernel;
 		VkCommandBuffer command = VK_NULL_HANDLE;
-		void destroy(){
-			kernel.destroy();
-		}
 	}gen_vertices;
 
 	Scan cell_scan;
@@ -94,11 +74,6 @@ public :
 	struct{
 		Buffer vertices;
 		Buffer indices;
-
-		void destroy(){
-			vertices.destroy();
-			indices.destroy();
-		}
 	}outputs;
 
 	struct{
@@ -115,6 +90,8 @@ public :
 	void create(Context *context, CommandQueue *commandQueue);
 	void destroy();
 	void destroyBuffers();
+	void destroyKernels();
+	void freeCommandBuffers();
 	void setVolumeSize(uint32_t x, uint32_t y, uint32_t z);
 	void setIsovalue(float value);
 	void setVolume(void *ptr);

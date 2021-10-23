@@ -96,9 +96,6 @@ int main(int argc, char* argv[]){
 	mc.setupCommandBuffers();
 	LOG("marching cube run!\n");
 	PROFILING(mc.run(), "marching_cube");
-	mc.setIsovalue(0.03);
-	PROFILING(mc.run(), "marching_cube");
-
 	LOG("edge_scan result enqueueCopy size : %d\n", dim.x * dim.y * dim.z * 3 * sizeof(uint32_t)-4);
 	queue.enqueueCopy(&mc.scan.d_epsum, &h_edgescan, dim.x * dim.y*dim.z*3*sizeof(uint32_t) - sizeof(uint32_t), 0, sizeof(uint32_t),false);
 	queue.enqueueCopy(&mc.scan.d_cpsum, &h_cellscan, dim.x*dim.y*dim.z*sizeof(uint32_t) - sizeof(uint32_t), 0, sizeof(uint32_t), false);
@@ -120,6 +117,7 @@ int main(int argc, char* argv[]){
 	delete [] vertices;
 	delete [] faces;
 	delete [] data;
+	mc.destroy();
 	LOG("queue destroyed\n");
 	queue.destroy();
 	LOG("context destroyed\n");
