@@ -63,6 +63,11 @@ public :
 		VkCommandBuffer command = VK_NULL_HANDLE;
 	}gen_vertices;
 
+	struct GenNormal{
+		Kernel kernel;
+		VkCommandBuffer command = VK_NULL_HANDLE;
+	}gen_normals;
+
 	Scan cell_scan;
 	Scan edge_scan;
 
@@ -74,6 +79,7 @@ public :
 	struct{
 		Buffer vertices;
 		Buffer indices;
+		Buffer normals;
 	}outputs;
 
 	struct{
@@ -104,6 +110,7 @@ public :
 	void setupEdgeCompactCommand();
 	void setupGenVerticesCommand();
 	void setupGenFacesCommand();
+	void setupGenNormalCommand();
 	void genVertices();
 	void genFaces();
 	void run();

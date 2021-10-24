@@ -5,6 +5,8 @@
 #include "scan.h"
 #include "vk_core.h"
 #include "marchingcube.h"
+#include <GLFW/glfw3.h>
+#define GLFW_INCLUDE_VULKAN
 
 using namespace std;
 using namespace VKEngine;
@@ -13,6 +15,8 @@ struct MetaInfo2{
 	uint32_t x,y,z;
 	float isovalue;
 }dim;
+
+void *h_volume;
 
 #define PROFILING(FPTR, FNAME) ({ \
 		std::chrono::system_clock::time_point start = std::chrono::system_clock::now(); \
@@ -37,18 +41,16 @@ void loadVolume(const char *file_path, uint32_t mem_size, void *data)
 	}
 }
 
-uint32_t * createTestData(uint32_t nr_elem){
-	uint32_t *data = new uint32_t[nr_elem];
-	for(uint32_t i = 0 ; i < nr_elem; ++i)
-		data[i] = 1;
-	return data;
-}
 
-void saveAsObj(const char *path, float *vertices, uint32_t* faces, uint32_t nr_vertices, uint32_t nr_faces){
+void saveAsObj(const char *path, float *vertices, uint32_t* faces, float *normals, uint32_t nr_vertices, uint32_t nr_faces){
 	ofstream os(path);
 
 	for(uint32_t i = 0 ; i < nr_vertices ; i++){
 		os << "v " << vertices[i*3] << " " << vertices[i*3+1] << " " << vertices[i*3+2] << endl;
+	}
+
+	for(uint32_t i = 0 ; i < nr_vertices ; i++){
+		os << "fn " << normals[i*3] << " " << normals[i*3+1] << " " << normals[i*3+2] << endl;
 	}
 
 	for(uint32_t i = 0 ; i < nr_faces ; i++){
@@ -57,6 +59,102 @@ void saveAsObj(const char *path, float *vertices, uint32_t* faces, uint32_t nr_v
 
 	os.close();
 }
+
+class MarchingCubeRenderer : public Application{
+	public :
+	MarchingCube mc;
+	explicit MarchingCubeRenderer(string app_name, string engine_name, int h, int w, vector<const char *> instance_extensions, vector<const char*> device_extensions, vector<const char*> validations) : Application(app_name, engine_name, h, w, instance_extensions, device_extensions, validations){
+
+	}
+	~MarchingCubeRenderer(){
+		mc.destroy();
+	}
+	
+	protected:
+	Program *draw_program;
+	
+	virtual void initWindow(){
+		LOG("App Init Window\n");
+		glfwInit();
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        window = glfwCreateWindow(width, height, "Vulkan", nullptr, nullptr);
+	}
+
+	virtual void createSurface(){
+		LOG("createSurface()\n");
+		VK_CHECK_RESULT(glfwCreateWindowSurface(VkInstance(*engine), window, nullptr, &surface));
+	}
+
+	virtual void mainLoop(){
+		while(!glfwWindowShouldClose(window)){
+			glfwPollEvents();
+			draw();
+			//updateUniform();
+		}
+		glfwDestroyWindow(window);
+		glfwTerminate();
+	}
+
+	void draw(){
+		render();
+	}
+
+	void prepareCompute(){
+		mc.create(context, compute_queue);
+		mc.setVolumeSize(dim.x,dim.y ,dim.z);
+		mc.setupBuffers();
+		mc.setIsovalue(dim.isovalue);
+		mc.setVolume(h_volume);
+		mc.setupDescriptorPool();
+		mc.setupKernels();
+		mc.setupCommandBuffers();
+	}
+
+	void prepareGraphicsCommandBuffer(){
+		std::array<VkClearValue, 2> clear_values;
+		clear_values[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+		clear_values[1].depthStencil = {1.0f, 0};
+		draw_command_buffers.resize(swapchain.buffers.size());
+		VkRenderPassBeginInfo render_pass_BI = infos::renderPassBeginInfo();
+		render_pass_BI.clearValueCount = static_cast<uint32_t>(clear_values.size());
+		render_pass_BI.pClearValues = clear_values.data();
+		render_pass_BI.renderArea.offset = {0,0};
+		render_pass_BI.renderArea.extent.height = height;
+		render_pass_BI.renderArea.extent.width = width;
+		render_pass_BI.renderPass = render_pass;
+
+		for(uint32_t i = 0 ; i < draw_command_buffers.size() ; ++i){
+			draw_command_buffers[i] = graphics_queue->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+		}
+		
+		for(uint32_t i = 0 ; i < draw_command_buffers.size() ; ++i){
+			graphics_queue->beginCommandBuffer(draw_command_buffers[i]);
+			render_pass_BI.framebuffer = framebuffers[i];
+			VkViewport viewport = infos::viewport(static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f);
+			VkRect2D scissor = infos::rect2D(width, height, 0, 0);
+			vkCmdBeginRenderPass(draw_command_buffers[i], &render_pass_BI, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdSetViewport(draw_command_buffers[i], 0, 1, &viewport);
+			vkCmdSetScissor(draw_command_buffers[i], 0, 1, &scissor);
+			vkCmdBindPipeline(draw_command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, draw_program->pipeline);
+			VkBuffer vertex_buffer[] = {VkBuffer(mc.outputs.vertices)};
+			VkBuffer indices_buffer[] = {VkBuffer(mc.outputs.indices)};
+			VkDeviceSize offsets[] = {0};
+			vkCmdBindVertexBuffers(draw_command_buffers[i], 0, 1, vertex_buffer ,offsets);
+			vkCmdBindIndexBuffer(draw_command_buffers[i], indices_buffer[0], 0, VK_INDEX_TYPE_UINT32);
+			/*
+			vkCmdBindDescriptorSets(draw_command_buffers[i], 
+									VK_PIPELINE_BIND_POINT_GRAPHICS,
+									draw_program->pipeline_layout, 
+									0, 
+									1, &uniform_matrix.desc_set,
+									0, nullptr);
+			*/
+			vkCmdDrawIndexed(draw_command_buffers[i], sz_indices, 1, 0, 0, 0);
+			vkCmdEndRenderPass(draw_command_buffers[i]);
+			graphics_queue->endCommandBuffer(draw_command_buffers[i]);
+		}	
+	}
+};
 
 int main(int argc, char* argv[]){
 	vector<const char *> instance_extensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME, "VK_EXT_debug_report", "VK_EXT_debug_utils"};
@@ -103,27 +201,29 @@ int main(int argc, char* argv[]){
 	queue.waitIdle();
 	float *vertices = new float[ 3 * h_edgescan ];
 	uint32_t *faces = new uint32_t[h_cellscan*3];
+	float *normals = new float[3 * h_edgescan];
 	LOG("nr_vertices : %d\n", h_edgescan);
 	LOG("nr_faces : %d\n", h_cellscan);
 	queue.enqueueCopy(&mc.outputs.vertices, vertices, 0, 0, h_edgescan*sizeof(float)*3);
 	queue.enqueueCopy(&mc.outputs.indices, faces, 0, 0, h_cellscan*sizeof(uint32_t)*3);
+	queue.enqueueCopy(&mc.outputs.normals, normals, 0, 0, sizeof(float) * h_edgescan*3);
 	queue.waitIdle();
 	LOG("Meta info dim (%d, %d, %d), isovalue : %f\n", dim.x , dim.y ,dim.z ,dim.isovalue);
 	LOG("GPU Edge Scan : %d\n", h_edgescan);
 	LOG("GPU Cell Scan : %d\n", h_cellscan);
 	LOG("Save As Object\n");
-	saveAsObj("test.obj", vertices , faces, h_edgescan,h_cellscan);
+	saveAsObj("test.obj", vertices , faces, normals, h_edgescan,h_cellscan);
 
 	delete [] vertices;
 	delete [] faces;
 	delete [] data;
-	mc.destroy();
+    //mc.destroy();
 	LOG("queue destroyed\n");
-	queue.destroy();
+	//queue.destroy();
 	LOG("context destroyed\n");
-	context.destroy();
+	//context.destroy();
 	LOG("engine destroyed\n");
-	engine.destroy();
+	//engine.destroy();
     LOG("All resource is released\n");
     return 0;
 }

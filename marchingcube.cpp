@@ -141,7 +141,12 @@ void MarchingCube::setupBuffers(){
 							VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 							meta_info.x * meta_info.y * meta_info.z, nullptr);
 
-	uint32_t h_cast_table[12] = {
+	outputs.normals.create(ctx, 
+						    VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+							VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+							(meta_info.x * meta_info.y * meta_info.z * sizeof(float) * 3), nullptr);
+
+	uint32_t h_cast_table[12] ={
 		0,
 		4,
 		meta_info.x*3,
@@ -166,9 +171,9 @@ void MarchingCube::setupBuffers(){
 
 void MarchingCube::setupDescriptorPool(){
 	vector<VkDescriptorPoolSize> pool_sizes = {
-		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3),
-		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 15),
-		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 6)
+		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4),
+		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 19),
+		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 9)
 	};
 	VkDescriptorPoolCreateInfo desc_pool_CI = infos::descriptorPoolCreateInfo(
 		static_cast<uint32_t>(pool_sizes.size()),
@@ -190,6 +195,7 @@ void MarchingCube::setupKernels(){
 	edge_compact.kernel.create(ctx, "shaders/edge_compact.comp.spv");
 	gen_vertices.kernel.create(ctx, "shaders/gen_vertices.comp.spv");
 	gen_faces.kernel.create(ctx, "shaders/gen_faces.comp.spv");
+	gen_normals.kernel.create(ctx, "shaders/gen_normals.comp.spv");
 	edge_scan.create(ctx, queue);
 	cell_scan.create(ctx, queue);
 
@@ -227,6 +233,13 @@ void MarchingCube::setupKernels(){
 		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 5),
 		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 6),
 	});
+	gen_normals.kernel.setupDescriptorSetLayout({
+		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 0),
+		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1),
+		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 2),
+		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 3),
+		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 4),
+	});
 
 
 	edge_scan.init(meta_info.x * meta_info.y * meta_info.z * 3);
@@ -237,6 +250,7 @@ void MarchingCube::setupKernels(){
 	edge_compact.kernel.allocateDescriptorSet(desc_pool);
 	gen_vertices.kernel.allocateDescriptorSet(desc_pool);
 	gen_faces.kernel.allocateDescriptorSet(desc_pool);
+	gen_normals.kernel.allocateDescriptorSet(desc_pool);
 
 	LOG("MachingCube::buildKernels()\n");
 	edge_test.kernel.build(cache, nullptr);
@@ -244,6 +258,7 @@ void MarchingCube::setupKernels(){
 	edge_compact.kernel.build(cache, nullptr);
 	gen_vertices.kernel.build(cache, nullptr);
 	gen_faces.kernel.build(cache, nullptr);
+	gen_normals.kernel.build(cache, nullptr);
 	edge_scan.build();
 	cell_scan.build();
 	LOG("MarchingCube::setupKernel() end()\n");
@@ -338,6 +353,20 @@ void MarchingCube::setupGenFacesCommand(){
 	queue->endCommandBuffer(gen_faces.command);
 }
 
+void MarchingCube::setupGenNormalCommand(){
+	gen_normals.command = queue->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, 0, true);
+	gen_normals.kernel.setKernelArgs({
+		{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &outputs.normals.descriptor, nullptr},
+		{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &scan.d_cpsum.descriptor, nullptr},
+		{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &outputs.indices.descriptor, nullptr},
+		{3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &outputs.vertices.descriptor, nullptr},
+		{4, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &general.d_metainfo.descriptor, nullptr}
+	});
+	queue->bindKernel(gen_normals.command, &gen_normals.kernel);
+	queue->dispatch(gen_normals.command, (meta_info.x * 3 +3)/4 , (meta_info.y + 3)/ 4, (meta_info.z + 3)/ 4);
+	queue->endCommandBuffer(gen_normals.command);
+}
+
 void MarchingCube::setupCommandBuffers(){
 	fence = queue->createFence();
 	setupEdgeTestCommand();
@@ -345,6 +374,7 @@ void MarchingCube::setupCommandBuffers(){
 	setupEdgeCompactCommand();
 	setupGenVerticesCommand();
 	setupGenFacesCommand();
+	setupGenNormalCommand();
 }
 
 void MarchingCube::run(){
@@ -371,6 +401,10 @@ void MarchingCube::run(){
 	queue->resetFences(&fence, 1);
 	queue->submit(gen, 2, 0, nullptr, 0, nullptr, 0, fence);
 	queue->waitFences(&fence, 1);
+
+	queue->resetFences(&fence, 1);
+	queue->submit(&gen_normals.command, 1, 0, nullptr, 0, nullptr, 0 ,fence);
+	queue->waitFences(&fence, 1);
 }
 
 void MarchingCube::destroyBuffers(){
@@ -385,20 +419,22 @@ void MarchingCube::destroyBuffers(){
 	scan.d_epsum.destroy();
 	outputs.vertices.destroy();
 	outputs.indices.destroy();
+	outputs.normals.destroy();
 }
 
 void MarchingCube::destroyKernels(){
 	LOG("MarchingCube::destroyKernels()\n");
 	VkDevice device = VkDevice(*ctx);
-	VkDescriptorSet sets[5] = {
+	VkDescriptorSet sets[6] = {
 		edge_test.kernel.descriptors.set,
 		cell_test.kernel.descriptors.set,
 		edge_compact.kernel.descriptors.set,
 		gen_faces.kernel.descriptors.set,
 		gen_vertices.kernel.descriptors.set,
+		gen_normals.kernel.descriptors.set
 	};
 
-	for(uint32_t i = 0 ; i <5 ; i++){
+	for(uint32_t i = 0 ; i <6 ; i++){
 		if(sets[i] != VK_NULL_HANDLE)
 			vkFreeDescriptorSets(device, desc_pool, 1, &sets[i]);
 	}
@@ -407,27 +443,30 @@ void MarchingCube::destroyKernels(){
 	edge_compact.kernel.descriptors.set =VK_NULL_HANDLE;
 	gen_faces.kernel.descriptors.set = VK_NULL_HANDLE;
 	gen_vertices.kernel.descriptors.set = VK_NULL_HANDLE;
+	gen_normals.kernel.descriptors.set = VK_NULL_HANDLE;
 
-	cell_scan.destroy();
-	edge_scan.destroy();
+	//cell_scan.destroy();
+	//edge_scan.destroy();
 	edge_test.kernel.destroy();
 	cell_test.kernel.destroy();
 	edge_compact.kernel.destroy();
 	gen_vertices.kernel.destroy();
 	gen_faces.kernel.destroy();
+	gen_normals.kernel.destroy();
 }
 
 void MarchingCube::freeCommandBuffers(){
 	LOG("MarchingCube::freeCommandBuffers()\n");
 	VkDevice device = VkDevice(*ctx);
-	VkCommandBuffer commands[5] = {
+	VkCommandBuffer commands[6] = {
 		edge_test.command,
 		cell_test.command,
 		edge_compact.command,
 		gen_vertices.command,
-		gen_faces.command
+		gen_faces.command,
+		gen_normals.command
 	};
-	for(uint32_t i = 0 ; i < 5 ; i++){
+	for(uint32_t i = 0 ; i < 6 ; i++){
 		if(commands[i])
 			queue->free(commands[i]);
 	}
@@ -436,6 +475,7 @@ void MarchingCube::freeCommandBuffers(){
 	edge_compact.command = VK_NULL_HANDLE;
 	gen_vertices.command = VK_NULL_HANDLE;
 	gen_faces.command = VK_NULL_HANDLE;
+	gen_normals.command = VK_NULL_HANDLE;
 }
 
 
