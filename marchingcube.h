@@ -13,7 +13,6 @@ class MarchingCube{
 private :
 	Context *ctx = nullptr;
 	CommandQueue *queue = nullptr;
-	VkSemaphore compute_complete = VK_NULL_HANDLE;
 	VkDescriptorPool desc_pool = VK_NULL_HANDLE;
 	VkPipelineCache cache = VK_NULL_HANDLE;
 	VkFence fence;
@@ -36,9 +35,19 @@ public :
 	// }volume_test;
 	
 	struct{
+		VkDescriptorSet edge_test = VK_NULL_HANDLE;
+		VkDescriptorSet	cell_test = VK_NULL_HANDLE;
+		VkDescriptorSet edge_compact = VK_NULL_HANDLE;
+		VkDescriptorSet gen_vertices = VK_NULL_HANDLE;
+		VkDescriptorSet gen_faces = VK_NULL_HANDLE;
+		VkDescriptorSet gen_normals = VK_NULL_HANDLE;
+	}desc_sets;
+
+	struct{
 		Kernel kernel;
 		Buffer d_output;
 		VkCommandBuffer command = VK_NULL_HANDLE;
+		VkEvent event = VK_NULL_HANDLE;
 	}edge_test;
 
 	struct{
@@ -46,11 +55,13 @@ public :
 		Buffer d_celltype;
 		Buffer d_tricount;
 		VkCommandBuffer command = VK_NULL_HANDLE;
+		VkEvent event = VK_NULL_HANDLE;
 	}cell_test;
 
 	struct{
 		Kernel kernel;
 		VkCommandBuffer command = VK_NULL_HANDLE;
+		VkEvent event = VK_NULL_HANDLE;
 	}edge_compact;
 
 	struct GenFaces{
@@ -87,8 +98,6 @@ public :
 		Buffer d_metainfo;
 		Image d_volume;
 	}general;
-	
-
 public :
 	MarchingCube();
 	MarchingCube(Context *context, CommandQueue *command_queue);
@@ -111,9 +120,7 @@ public :
 	void setupGenVerticesCommand();
 	void setupGenFacesCommand();
 	void setupGenNormalCommand();
-	void genVertices();
-	void genFaces();
-	void run();
+	void run(VkSemaphore *wait_semaphores, uint32_t nr_waits, VkSemaphore *signal_semaphores, uint32_t nr_signals);
 };
 
 }

@@ -5,8 +5,10 @@
 #include "scan.h"
 #include "vk_core.h"
 #include "marchingcube.h"
+
 #include <GLFW/glfw3.h>
-#define GLFW_INCLUDE_VULKAN
+#include <glm/glm.hpp>
+#define GLFW_INCLUDE_VULKAN 1
 
 using namespace std;
 using namespace VKEngine;
@@ -16,8 +18,49 @@ struct MetaInfo2{
 	float isovalue;
 }dim;
 
-void *h_volume;
+float *h_volume;
 
+
+/*
+vector<const char *> getRequiredExtensions(  ){
+	glfwInit();
+	uint32_t glfwExtensionCount = 0;
+	const char** glfwExtensions;
+	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+	if(validationEnable) {
+		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+	}
+	glfwTerminate();
+	return extensions;
+}
+
+struct Vertex {
+	glm::vec3 pos;
+	
+	static vector<VkVertexInputBindingDescription> vertexInputBinding(){
+		vector <VkVertexInputBindingDescription> bindings;
+		VkVertexInputBindingDescription binding = {};
+		binding.binding = 0;
+		binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+		binding.stride = sizeof(Vertex);
+		bindings.push_back(binding);
+		return bindings;
+	}
+
+	static vector<VkVertexInputAttributeDescription> vertexInputAttributes(){
+		vector<VkVertexInputAttributeDescription> attributes(1);
+		attributes[0].binding = 0;
+		attributes[0].location = 0;
+		attributes[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributes[0].offset = offsetof(Vertex, pos);
+		return attributes;
+	}
+};
+
+*/
 #define PROFILING(FPTR, FNAME) ({ \
 		std::chrono::system_clock::time_point start = std::chrono::system_clock::now(); \
 		FPTR; \
@@ -60,6 +103,7 @@ void saveAsObj(const char *path, float *vertices, uint32_t* faces, float *normal
 	os.close();
 }
 
+/*
 class MarchingCubeRenderer : public Application{
 	public :
 	MarchingCube mc;
@@ -72,6 +116,7 @@ class MarchingCubeRenderer : public Application{
 	
 	protected:
 	Program *draw_program;
+	VkSemaphore compute_complete;
 	
 	virtual void initWindow(){
 		LOG("App Init Window\n");
@@ -82,7 +127,7 @@ class MarchingCubeRenderer : public Application{
 
 	virtual void createSurface(){
 		LOG("createSurface()\n");
-		VK_CHECK_RESULT(glfwCreateWindowSurface(VkInstance(*engine), window, nullptr, &surface));
+		glfwCreateWindowSurface(VkInstance(*engine), window, nullptr, &surface);
 	}
 
 	virtual void mainLoop(){
@@ -96,18 +141,43 @@ class MarchingCubeRenderer : public Application{
 	}
 
 	void draw(){
+		//compute();
 		render();
 	}
 
 	void prepareCompute(){
+		VkSemaphoreCreateInfo semaphore_CI = infos::semaphoreCreateInfo();
+		VK_CHECK_RESULT(vkCreateSemaphore(VkDevice(*context), &semaphore_CI, nullptr, &compute_complete));
 		mc.create(context, compute_queue);
+		mc.setupDescriptorPool();
 		mc.setVolumeSize(dim.x,dim.y ,dim.z);
 		mc.setupBuffers();
 		mc.setIsovalue(dim.isovalue);
-		mc.setVolume(h_volume);
-		mc.setupDescriptorPool();
+		mc.setVolume((void *)h_volume);
 		mc.setupKernels();
 		mc.setupCommandBuffers();
+	}
+
+	void prepareGraphicsProgram(){
+		draw_program = new Program(context);
+		draw_program->attachShader("./shaders/mc.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		draw_program->attachShader("./shaders/mc.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		// draw_program->setupDescriptorSetLayout({
+		// 	infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0, 1)
+		// });
+		// draw_program->createDescriptorPool({
+		//  	infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3)
+		// });
+		// draw_program->allocDescriptorSet(&uniform_matrix.desc_set, 0, 1);
+		auto attributes = Vertex::vertexInputAttributes();
+		auto bindings = Vertex::vertexInputBinding();
+		draw_program->graphics.vertex_input = infos::vertexInputStateCreateInfo(attributes, bindings);
+		draw_program->build(render_pass, cache);
+		// draw_program->uniformUpdate(
+		// 		uniform_matrix.desc_set,
+		// 		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0,
+		// 		&mc.output.ubo.descriptor, nullptr
+		// );
 	}
 
 	void prepareGraphicsCommandBuffer(){
@@ -126,7 +196,9 @@ class MarchingCubeRenderer : public Application{
 		for(uint32_t i = 0 ; i < draw_command_buffers.size() ; ++i){
 			draw_command_buffers[i] = graphics_queue->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 		}
-		
+
+		uint sz_indices = dim.x * dim.y * dim.z;
+		LOG("sz indices : %d\n", sz_indices);
 		for(uint32_t i = 0 ; i < draw_command_buffers.size() ; ++i){
 			graphics_queue->beginCommandBuffer(draw_command_buffers[i]);
 			render_pass_BI.framebuffer = framebuffers[i];
@@ -141,25 +213,68 @@ class MarchingCubeRenderer : public Application{
 			VkDeviceSize offsets[] = {0};
 			vkCmdBindVertexBuffers(draw_command_buffers[i], 0, 1, vertex_buffer ,offsets);
 			vkCmdBindIndexBuffer(draw_command_buffers[i], indices_buffer[0], 0, VK_INDEX_TYPE_UINT32);
-			/*
-			vkCmdBindDescriptorSets(draw_command_buffers[i], 
-									VK_PIPELINE_BIND_POINT_GRAPHICS,
-									draw_program->pipeline_layout, 
-									0, 
-									1, &uniform_matrix.desc_set,
-									0, nullptr);
-			*/
+			// vkCmdBindDescriptorSets(draw_command_buffers[i], 
+			// 						VK_PIPELINE_BIND_POINT_GRAPHICS,
+			// 						draw_program->pipeline_layout, 
+			// 						0, 
+			// 						1, &uniform_matrix.desc_set,
+			// 						0, nullptr);
 			vkCmdDrawIndexed(draw_command_buffers[i], sz_indices, 1, 0, 0, 0);
 			vkCmdEndRenderPass(draw_command_buffers[i]);
 			graphics_queue->endCommandBuffer(draw_command_buffers[i]);
-		}	
+		}
 	}
+	void destroy(){
+		mc.destroy();
+		if(compute_complete)
+			vkDestroySemaphore(VkDevice(*context), compute_complete, nullptr);
+		compute_complete = VK_NULL_HANDLE;
+		Application::destroy();
+	}
+
+	void compute(){
+		LOG("compute run\n");
+		mc.run(&semaphores.render_complete, 1, &compute_complete, 1);
+	}
+
+	virtual void render(){
+		prepareFrame();
+		VkSemaphore graphics_wait_semaphores[1] = {
+			compute_complete
+		};
+		graphics_queue->resetFences(&draw_fence, 1);
+		graphics_queue->submit(&draw_command_buffers[current_frame_index], 1, 
+					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, graphics_wait_semaphores, 1,
+					&semaphores.render_complete, 1, draw_fence);
+		graphics_queue->waitFences(&draw_fence, 1);
+		submitFrame();
+		//compute();
+	}
+
+	public :
+	void run(){
+		LOG("Application Init\n");
+		Application::init();
+		LOG("Application Init Complete\n");
+		prepareCompute();
+		LOG("MarchingCubeRenderer::prepareCompute done\n");
+		prepareGraphicsProgram();
+		prepareGraphicsCommandBuffer();
+		mainLoop();
+		destroy();
+	}
+
 };
+*/
 
 int main(int argc, char* argv[]){
-	vector<const char *> instance_extensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME, "VK_EXT_debug_report", "VK_EXT_debug_utils"};
+	//vector<const char *> instance_extensions(getRequiredExtensions());//
+	vector<const char*> instance_extensions = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME, "VK_EXT_debug_report", "VK_EXT_debug_utils"};
 	vector<const char *> validations={"VK_LAYER_KHRONOS_validation"};
-	vector<const char *> device_extensions={VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+	vector<const char *> device_extensions= {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+	string _name = "vulkan";
+	string engine_name = "engine";
+	
 	Engine engine(
 		"Marching Cube",
 		"Vulkan Renderer",
@@ -178,25 +293,52 @@ int main(int argc, char* argv[]){
 	dim.y = 128;
 	dim.z = 64;
 	dim.isovalue = 0.02f;
-	float *data = new float[dim.x * dim.y * dim.z];
+	h_volume = new float[dim.x * dim.y * dim.z];
+	loadVolume("data/dragon_vrip_FLT32_128_128_64.raw", dim.x*dim.y*dim.z*sizeof(float), (void *)h_volume);
+	/*
+	try {
+		MarchingCubeRenderer app(_name, engine_name,600, 800, instance_extensions, device_extensions, validations);
+		app.run();
+	} catch(std::exception& e) {
+		cout << "error occured " << e.what() << " on File " << __FILE__ << " line : " << __LINE__ << endl;
+		exit(EXIT_FAILURE);
+	}
+	*/
 	uint32_t *edge_psum = new uint32_t[dim.x * dim.y * dim.z*3];
 	uint32_t *tri_psum = new uint32_t[dim.x * dim.y * dim.z];
 	uint32_t h_edgescan, h_cellscan;
-	loadVolume("data/dragon_vrip_FLT32_128_128_64.raw", dim.x*dim.y*dim.z*sizeof(float), (void *)data);
 	mc.setVolumeSize(dim.x, dim.y, dim.z);
 	mc.setupDescriptorPool();
 	mc.setupBuffers();
-	mc.setVolume((void *)data);
+	mc.setVolume((void *)h_volume);
 	mc.setIsovalue(dim.isovalue);
 	LOG("setup Kernels\n");
 	mc.setupKernels();
 	LOG("setup Kernel done\n");
 	mc.setupCommandBuffers();
 	LOG("marching cube run!\n");
-	PROFILING(mc.run(), "marching_cube");
-	LOG("edge_scan result enqueueCopy size : %d\n", dim.x * dim.y * dim.z * 3 * sizeof(uint32_t)-4);
-	queue.enqueueCopy(&mc.scan.d_epsum, &h_edgescan, dim.x * dim.y*dim.z*3*sizeof(uint32_t) - sizeof(uint32_t), 0, sizeof(uint32_t),false);
-	queue.enqueueCopy(&mc.scan.d_cpsum, &h_cellscan, dim.x*dim.y*dim.z*sizeof(uint32_t) - sizeof(uint32_t), 0, sizeof(uint32_t), false);
+	PROFILING(mc.run(nullptr, 0, nullptr, 0), "marching_cube");
+	queue.waitIdle();
+	
+	queue.enqueueCopy(&mc.edge_test.d_output, edge_psum ,0, 0, dim.x*dim.y*dim.z*3*sizeof(uint32_t));
+	queue.waitIdle();
+	uint32_t s=0;
+	for(uint32_t i = 0 ; i < dim.x * dim.y * dim.z * 3 ; i++){
+		s+=edge_psum[i];
+	}
+	printf("cpu edge_scan: %d\n", s);
+	
+	queue.enqueueCopy(&mc.scan.d_epsum, edge_psum ,0, 0, dim.x*dim.y*dim.z*3*sizeof(uint32_t));
+	queue.waitIdle();
+	s = 0;
+	for(uint32_t i = 0 ; i < dim.x * dim.y * dim.z * 3 ; i++){
+		s+=edge_psum[i];
+	}
+	printf("gpu edge_scan : %d\n", s);
+	exit(1);
+
+	//queue.enqueueCopy(&mc.scan.d_epsum, &h_edgescan, dim.x * dim.y*dim.z*3*sizeof(uint32_t) - sizeof(uint32_t), 0, sizeof(uint32_t),false);
+	//queue.enqueueCopy(&mc.scan.d_cpsum, &h_cellscan, dim.x*dim.y*dim.z*sizeof(uint32_t) - sizeof(uint32_t), 0, sizeof(uint32_t), false);
 	//mc.general.d_metainfo.copyTo(&dim, sizeof(MetaInfo2));
 	queue.waitIdle();
 	float *vertices = new float[ 3 * h_edgescan ];
@@ -204,26 +346,21 @@ int main(int argc, char* argv[]){
 	float *normals = new float[3 * h_edgescan];
 	LOG("nr_vertices : %d\n", h_edgescan);
 	LOG("nr_faces : %d\n", h_cellscan);
-	queue.enqueueCopy(&mc.outputs.vertices, vertices, 0, 0, h_edgescan*sizeof(float)*3);
-	queue.enqueueCopy(&mc.outputs.indices, faces, 0, 0, h_cellscan*sizeof(uint32_t)*3);
-	queue.enqueueCopy(&mc.outputs.normals, normals, 0, 0, sizeof(float) * h_edgescan*3);
+	//queue.enqueueCopy(&mc.outputs.vertices, vertices, 0, 0, h_edgescan*sizeof(float)*3);
+	//queue.enqueueCopy(&mc.outputs.indices, faces, 0, 0, h_cellscan*sizeof(uint32_t)*3);
+	//queue.enqueueCopy(&mc.outputs.normals, normals, 0, 0, sizeof(float) * h_edgescan*3);
 	queue.waitIdle();
 	LOG("Meta info dim (%d, %d, %d), isovalue : %f\n", dim.x , dim.y ,dim.z ,dim.isovalue);
 	LOG("GPU Edge Scan : %d\n", h_edgescan);
 	LOG("GPU Cell Scan : %d\n", h_cellscan);
 	LOG("Save As Object\n");
 	saveAsObj("test.obj", vertices , faces, normals, h_edgescan,h_cellscan);
-
 	delete [] vertices;
 	delete [] faces;
-	delete [] data;
-    //mc.destroy();
-	LOG("queue destroyed\n");
-	//queue.destroy();
-	LOG("context destroyed\n");
-	//context.destroy();
-	LOG("engine destroyed\n");
-	//engine.destroy();
-    LOG("All resource is released\n");
+	delete[] h_volume;
+    mc.destroy();
+	queue.destroy();
+	context.destroy();
+	engine.destroy();
     return 0;
 }

@@ -17,11 +17,19 @@ private :
 	VkDescriptorPool desc_pool = VK_NULL_HANDLE;
 	VkPipelineCache cache = VK_NULL_HANDLE;
 public :
-	vector<Buffer *> d_grps; // device group_sum buffer
 	Buffer d_limit; // device buffer to save limits
 	vector<uint32_t> h_limits;
 	vector<uint32_t> g_sizes;
 	vector<uint32_t> l_sizes;
+	
+	vector<Buffer *> d_inputs;
+	vector<Buffer *> d_outputs;
+	vector<Buffer *> d_grps; // device group_sum buffer
+
+	uint32_t nr_desc_alloc = 0;
+	VkDescriptorSet *scan4_sets = nullptr;
+	VkDescriptorSet scan_ed_set = VK_NULL_HANDLE;
+	VkDescriptorSet *uniform_update_sets = nullptr;
 	uint32_t nr_element;
 
 	struct{
@@ -29,14 +37,19 @@ public :
 		Kernel scan_ed;
 		Kernel uniform_update;
 	}program;
+	VkEvent event = VK_NULL_HANDLE;
 
+	/*
 	struct{
 		vector<VkCommandBuffer> scan4;
-		vector<VkCommandBuffer> scan_ed;
+		VkCommandBuffer scan_ed = VK_NULL_HANDLE;
 		vector<VkCommandBuffer> uniform_update;
 	}commands;
+	*/
+
 
 	public :
+	VkCommandBuffer command = VK_NULL_HANDLE;
 	Scan();
 	~Scan();
 	void create(Context *context, CommandQueue* command_queue);
@@ -45,8 +58,9 @@ public :
 	void setupBuffers();
 	void setupKernels();
 	void setupDescriptorPool();
+	void setupCommandBuffer(Buffer *d_input, Buffer *d_output, VkEvent wait_event);
 	void build();
-	void run(Buffer *d_input, Buffer *d_output);
+	//void run(Buffer *d_input, Buffer *d_output);
 };
 
 

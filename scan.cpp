@@ -15,11 +15,24 @@ Scan::~Scan(){
 
 void Scan::destroy(){
     // LOG("Scan::destroy() called!\n");
+	VkDevice device = VkDevice(*ctx);
 	if(cache){
         // LOG("cache destroy!\n");
-		VkDevice device = VkDevice(*ctx);
 		vkDestroyPipelineCache(device, cache, nullptr);
         cache = VK_NULL_HANDLE;
+	}
+
+	if(scan4_sets!=nullptr){
+		vkFreeDescriptorSets(device, desc_pool, nr_desc_alloc, scan4_sets);
+		delete [] scan4_sets;
+	}
+	if(uniform_update_sets != nullptr){
+		vkFreeDescriptorSets(device, desc_pool, nr_desc_alloc, uniform_update_sets);
+		delete [] uniform_update_sets;
+	}
+	if(scan_ed_set){
+		vkFreeDescriptorSets(device, desc_pool, 1, &scan_ed_set);
+		scan_ed_set = VK_NULL_HANDLE;
 	}
 	// LOG("scan4 destroyed\n");
 	program.scan4.destroy();
@@ -83,15 +96,15 @@ void Scan::setupBuffers(){
 }
 
 void Scan::setupDescriptorPool(){
-    // LOG("setup Descriptor Pool\n");
+    LOG("Scan::setup Descriptor Pool\n");
 	VkDescriptorPoolSize pool_size[2] = {
-		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 8),
-		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
+		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 18),
+		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 8),
 	};
-	VkDescriptorPoolCreateInfo desc_pool_CI = infos::descriptorPoolCreateInfo(2, pool_size,  4);
+	VkDescriptorPoolCreateInfo desc_pool_CI = infos::descriptorPoolCreateInfo(2, pool_size,  12);
 	VK_CHECK_RESULT(vkCreateDescriptorPool(VkDevice(*ctx), &desc_pool_CI, nullptr, &desc_pool));
 
-    // LOG("setup Descriptor Pool Done\n");
+    LOG("Scan::setup Descriptor Pool Done\n");
 }
 
 void Scan::setupKernels(){
@@ -117,15 +130,28 @@ void Scan::setupKernels(){
 		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1)
 	});
     // LOG("descriptor pool : %p \n", desc_pool);
-	// LOG("scan allocate\n");
-	program.scan4.allocateDescriptorSet(desc_pool);
-	// LOG("scan_ed allocate\n");
-	program.scan_ed.allocateDescriptorSet(desc_pool);
-	// LOG("uniform_update allocate\n");
-	program.uniform_update.allocateDescriptorSet(desc_pool);
+	uint32_t nr_alloc = 0;
+	for(uint32_t i = 0 ; i < d_grps.size() ; i++){
+		if(d_grps[i] != nullptr){
+			nr_alloc++;
+		}
+	}
+	scan4_sets = new VkDescriptorSet[nr_alloc];
+	uniform_update_sets = new VkDescriptorSet[nr_alloc];
+	LOG("scan_ed allocate\n");
+	program.scan_ed.allocateDescriptorSet(desc_pool, &scan_ed_set, 1 );
+	LOG("scan allocate\n");
+	for(uint32_t i = 0 ; i < nr_alloc ; i++)
+		program.scan4.allocateDescriptorSet(desc_pool, &scan4_sets[i], 1);
+	LOG("uniform_update allocate\n");
+
+	for(uint32_t i = 0 ; i < nr_alloc ; i++)
+		program.uniform_update.allocateDescriptorSet(desc_pool, &uniform_update_sets[i], 1);
+	nr_desc_alloc = nr_alloc;
 }
 
 void Scan::build(){
+	LOG("Scan::build()\n");
 	uint32_t data[2] = {2*h_limits.back(), h_limits.back()};
     // LOG("scan_ed local_mem_size : %d\n", 4 * data[0]);
     // LOG("scan_ed local_dispatch_size : %d\n", data[1]);
@@ -151,11 +177,114 @@ void Scan::build(){
 	program.scan4.build(cache, nullptr);
 	program.scan_ed.build(cache, &scan_ed_SI);
 	program.uniform_update.build(cache, nullptr);
+	LOG("Scan::build() done\n");
 }
 
+void Scan::setupCommandBuffer(Buffer *d_input, Buffer *d_output, VkEvent wait_event){
+	LOG("Scan::setupCommandBuffer()\n");
+	VK_CHECK_RESULT(ctx->createEvent(&event));
+	d_inputs.push_back(d_input);
+	d_outputs.push_back(d_output);
+	for(uint32_t i = 0 ; i < d_grps.size(); i++){
+		if(d_grps[i] != nullptr){
+			d_inputs.push_back(d_grps[i]);
+			d_outputs.push_back(d_grps[i]);
+		}
+	}
+	LOG("command start\n");
+	command = queue->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, 0, true);
+	LOG("set event start\n");
+	for(uint32_t i = 0 ; i < d_grps.size() ; i++){
+		if(d_grps[i] != nullptr){
+			LOG("scan4 iter %d\n",i);
+			LOG("h_limits[%d] : %d\n", i, h_limits[i]);
+			d_limit.copyFrom(&h_limits[i], 4);
+			program.scan4.setKernelArgs(scan4_sets[i], {
+				{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_inputs[i]->descriptor, nullptr},
+				{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_outputs[i]->descriptor, nullptr},
+				{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_grps[i]->descriptor, nullptr},
+				{3, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &d_limit.descriptor, nullptr}
+			});
+			queue->bindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, program.scan4.pipeline);
+			queue->bindDescriptorSets(command, VK_PIPELINE_BIND_POINT_COMPUTE, program.scan4.layouts.pipeline,
+				0, &scan4_sets[i], 1, 0, nullptr);
+
+			if(i == 0){
+				VkBufferMemoryBarrier input_barrier = d_inputs[i]->barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+				queue->setEvent(command, event, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+				queue->waitEvents(command, &wait_event, 1, 
+						VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+						nullptr, 0 ,
+						&input_barrier, 1,
+						nullptr, 0);
+			}else{
+				VkBufferMemoryBarrier input_barrier = d_inputs[i]->barrier(VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT);
+				queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,
+				nullptr, 0,&input_barrier,1,nullptr, 0);
+			}
+			queue->dispatch(command, (g_sizes[i] + 63 )/ 64, 1, 1);
+			VkBufferMemoryBarrier output_barrier = d_outputs[i]->barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+			queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,
+			nullptr, 0, &output_barrier, 1, nullptr, 0);
+			if(i==0){
+				break;
+			}
+		}else{
+			LOG("scan_ed %d\n",i);
+			program.scan_ed.setKernelArgs(scan_ed_set, {
+				{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_inputs[i]->descriptor, nullptr},
+				{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_outputs[i]->descriptor, nullptr},
+			});
+			LOG("scaned set Kernel Args done\n");
+			queue->bindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, program.scan_ed.pipeline);
+			queue->bindDescriptorSets(command, VK_PIPELINE_BIND_POINT_COMPUTE, program.scan_ed.layouts.pipeline, 0,
+									&scan_ed_set, 1, 0, nullptr);
+			LOG("scaned bind Kernel done\n");
+			VkBufferMemoryBarrier input_barrier = d_inputs[i]->barrier(VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT);
+			queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,
+				nullptr, 0, &input_barrier, 1, nullptr, 0);
+			LOG("scaned barrier create\n");
+			queue->dispatch(command, g_sizes[i], 1, 1);
+			LOG("scaned dispatch\n");
+			VkBufferMemoryBarrier output_barrier = d_outputs[i]->barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+			queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
+				nullptr, 0, &output_barrier, 1, nullptr, 0);
+			LOG("Output bind dispatch\n");
+		}
+	}
+
+	for(int i = static_cast<uint32_t>(d_grps.size()) - 1 ; i >= 0 ; i--){
+		printf("%d\n",i);
+		if(d_grps[i] != nullptr){
+			LOG("uniform update %d\n",i);
+			program.uniform_update.setKernelArgs(uniform_update_sets[i], {
+				{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_outputs[i]->descriptor, nullptr},
+				{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_grps[i]->descriptor, nullptr}
+			});
+
+			queue->bindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, program.uniform_update.pipeline);
+			queue->bindDescriptorSets(command, VK_PIPELINE_BIND_POINT_COMPUTE, program.uniform_update.layouts.pipeline,
+									 0, &uniform_update_sets[i], 1, 0, nullptr);
+			LOG("uniform update bindDescriptorSets\n");
+			VkBufferMemoryBarrier input_barrier = d_grps[i]->barrier(VK_ACCESS_SHADER_WRITE_BIT,VK_ACCESS_SHADER_READ_BIT);
+			LOG("uniform update barrier\n");
+			queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, nullptr, 0, &input_barrier, 1, nullptr,  0);
+			LOG("uniform update dispatch\n");
+			queue->dispatch(command, (g_sizes[i] + 63)/64, 1, 1);
+			VkBufferMemoryBarrier output_barrier = d_outputs[i]->barrier(VK_ACCESS_SHADER_WRITE_BIT,VK_ACCESS_SHADER_READ_BIT);
+			LOG("uniform update barrier\n");
+			queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, nullptr, 0, &output_barrier, 1, nullptr, 0);
+		}
+	}
+
+	VK_CHECK_RESULT(queue->endCommandBuffer(command));
+	LOG("Scan::setupCommandBuffer() done\n");
+}
+/*
 void Scan::run(Buffer *d_input, Buffer *d_output){
 	VkFence fence = queue->createFence(VK_FENCE_CREATE_SIGNALED_BIT);
 	// LOG("fence created \n");
+
 	vector<Buffer *> d_inputs = {d_input};
 	vector<Buffer *> d_outputs = {d_output};
 	// LOG("Buffer initialized\n");
@@ -201,6 +330,8 @@ void Scan::run(Buffer *d_input, Buffer *d_output){
 	queue->waitFences(&fence, 1);
 	queue->waitIdle();
 	used_buffers.push_back(init_memory_command);
+	vkCmdSetEvent();
+	vkCmdWaitEvents()
 
 	for(uint32_t i = 0 ; i < d_grps.size() ; ++i){
 		if(d_grps[i] != nullptr){
@@ -273,7 +404,7 @@ void Scan::run(Buffer *d_input, Buffer *d_output){
 	used_buffers.clear();
 	// LOG("scan process done\n");
 }
-
+*/
 
 }
 #endif 

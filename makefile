@@ -3,7 +3,7 @@ DEPENDENCIES=scan.o marchingcube.o
 TARGET=main
 LDFLAGS=-LVKEngine/lib -lvulkan -lVKEngine -lglfw
 INCLUDE_PATH=-IVKEngine/include
-CFLAGS=--std=c++17
+CFLAGS=--std=c++17 -DGLFW_INCLUDE_VULKAN -DDEBUG
 
 $(TARGET) : $(TARGET).cpp $(DEPENDENCIES)
 	$(CC) $(CFLAGS) -o $(TARGET).out $(TARGET).cpp $(DEPENDENCIES) $(INCLUDE_PATH) $(LDFLAGS)
