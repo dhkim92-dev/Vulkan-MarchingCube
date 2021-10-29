@@ -300,8 +300,8 @@ void MarchingCube::setupEdgeTestCommand(){
 	//queue->bindKernel(edge_test.command, &edge_test.kernel);
 	queue->bindPipeline(edge_test.command, VK_PIPELINE_BIND_POINT_COMPUTE, edge_test.kernel.pipeline);
 	queue->bindDescriptorSets(edge_test.command, VK_PIPELINE_BIND_POINT_COMPUTE, edge_test.kernel.layouts.pipeline, 0, &desc_sets.edge_test, 1, 0, nullptr);
-	queue->setEvent(edge_test.command, edge_test.event, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 	queue->dispatch(edge_test.command, (meta_info.x+3)/4, (meta_info.y+3)/4, (meta_info.z+3)/4);
+	queue->setEvent(edge_test.command, edge_test.event, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 	queue->endCommandBuffer(edge_test.command);
 }
 
@@ -315,8 +315,8 @@ void MarchingCube::setupCellTestCommand(){
 	});
 	queue->bindPipeline(cell_test.command, VK_PIPELINE_BIND_POINT_COMPUTE, cell_test.kernel.pipeline);
 	queue->bindDescriptorSets(cell_test.command, VK_PIPELINE_BIND_POINT_COMPUTE, cell_test.kernel.layouts.pipeline, 0, &desc_sets.cell_test, 1, 0, nullptr);
-	queue->setEvent(cell_test.command, cell_test.event, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 	queue->dispatch(cell_test.command, (meta_info.x + 3) / 4, (meta_info.y+3)/4, (meta_info.z+3)/4 );
+	queue->setEvent(cell_test.command, cell_test.event, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 	queue->endCommandBuffer(cell_test.command);
 }
 
@@ -330,10 +330,17 @@ void MarchingCube::setupEdgeCompactCommand(){
 	});
 	queue->bindPipeline(edge_compact.command, VK_PIPELINE_BIND_POINT_COMPUTE, edge_compact.kernel.pipeline);
 	queue->bindDescriptorSets(edge_compact.command, VK_PIPELINE_BIND_POINT_COMPUTE, edge_compact.kernel.layouts.pipeline, 0, &desc_sets.edge_compact, 1, 0, nullptr);
-	VkBufferMemoryBarrier input_barrier = scan.d_epsum.barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-	queue->setEvent(edge_compact.command, edge_compact.event, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-	queue->waitEvents(edge_compact.command, &edge_scan.event,  1, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, nullptr, 0, &input_barrier, 1, nullptr, 0 );
+	VkBufferMemoryBarrier input_barriers[2] = {
+		scan.d_epsum.barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT),
+		edge_test.d_output.barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT)
+	};
+	VkEvent wait_events[2] = {
+		edge_test.event,
+		edge_scan.event
+	};
+	queue->waitEvents(edge_compact.command, wait_events,  2, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, nullptr, 0, input_barriers, 2, nullptr, 0 );
 	queue->dispatch(edge_compact.command, (3*meta_info.x+3)/4, (meta_info.y+3)/4, (meta_info.z+3/4));
+	queue->setEvent(edge_compact.command, edge_compact.event, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 	queue->endCommandBuffer(edge_compact.command);
 }
 
@@ -372,15 +379,18 @@ void MarchingCube::setupGenFacesCommand(){
 		{5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &general.d_cast_table.descriptor, nullptr},
 		{6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &general.d_metainfo.descriptor, nullptr}
 	});
-	VkBufferMemoryBarrier barriers[2] = {
+	VkBufferMemoryBarrier barriers[4] = {
+		cell_test.d_celltype.barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT),
+		cell_test.d_tricount.barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT),
 		scan.d_cpsum.barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT),
 		scan.d_epsum.barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT)
 	};
-	VkEvent wait_events[2] = {
+	VkEvent wait_events[3] = {
+		cell_test.event,
 		edge_scan.event,
 		cell_scan.event
 	};
-	queue->waitEvents(gen_faces.command, wait_events, 2, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, nullptr, 0, barriers, 2, nullptr ,0 );
+	queue->waitEvents(gen_faces.command, wait_events, 3, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, nullptr, 0, barriers, 4, nullptr ,0 );
 	queue->bindPipeline(gen_faces.command, VK_PIPELINE_BIND_POINT_COMPUTE, gen_faces.kernel.pipeline);
 	queue->bindDescriptorSets(gen_faces.command, VK_PIPELINE_BIND_POINT_COMPUTE, gen_faces.kernel.layouts.pipeline, 0, &desc_sets.gen_faces, 1, 0, nullptr);
 	queue->dispatch(gen_faces.command, (meta_info.x+3)/4, (meta_info.y+3)/4, (meta_info.z+3)/4);
@@ -429,9 +439,9 @@ void MarchingCube::run(VkSemaphore *wait_semaphores, uint32_t nr_waits, VkSemaph
 		cell_test.command,
 		edge_scan.command,
 		cell_scan.command,
-		//edge_compact.command,
-		//gen_vertices.command,
-		//gen_faces.command
+		edge_compact.command,
+		gen_vertices.command,
+		gen_faces.command
 	};
 	//queue->resetFences(&fence,1);
 	
@@ -458,11 +468,11 @@ void MarchingCube::run(VkSemaphore *wait_semaphores, uint32_t nr_waits, VkSemaph
 	// queue->submit(gen, 2, 0, nullptr, 0, nullptr, 0, fence);
 	// queue->waitFences(&fence, 1);
 	queue->resetFences(&fence, 1);
-	queue->submit(commands, 2, 0, nullptr, 0, nullptr, 0, fence);
+	queue->submit(commands, 7, 0, nullptr, 0, nullptr, 0, fence);
 	queue->waitFences(&fence, 1);
-	queue->resetFences(&fence, 1);
-	queue->submit(&commands[2], 2, 0, nullptr, 0, nullptr, 0, fence);
-	queue->waitFences(&fence, 1);
+	// queue->resetFences(&fence, 1);
+	// /queue->submit(&commands[2], 2, 0, nullptr, 0, nullptr, 0, fence);
+	// queue->waitFences(&fence, 1);
 	queue->waitIdle();
 	//queue->resetFences(&fence, 1);
 	//queue->submit(&gen_normals.command, 1, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, nullptr, 0, signal_semaphores, nr_signals ,fence);

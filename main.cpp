@@ -92,10 +92,13 @@ void saveAsObj(const char *path, float *vertices, uint32_t* faces, float *normal
 		os << "v " << vertices[i*3] << " " << vertices[i*3+1] << " " << vertices[i*3+2] << endl;
 	}
 
-	for(uint32_t i = 0 ; i < nr_vertices ; i++){
-		os << "fn " << normals[i*3] << " " << normals[i*3+1] << " " << normals[i*3+2] << endl;
+	/*
+	if(faces != nullptr){
+		for(uint32_t i = 0 ; i < nr_vertices ; i++){
+			os << "fn " << normals[i*3] << " " << normals[i*3+1] << " " << normals[i*3+2] << endl;
+		}
 	}
-
+	*/
 	for(uint32_t i = 0 ; i < nr_faces ; i++){
 		os << "f " << faces[i*3] + 1 << " " << faces[i*3+1] + 1 << " " << faces[i*3+2] + 1<< endl;
 	}
@@ -331,27 +334,24 @@ int main(int argc, char* argv[]){
 	queue.enqueueCopy(&mc.scan.d_epsum, edge_psum ,0, 0, dim.x*dim.y*dim.z*3*sizeof(uint32_t));
 	queue.waitIdle();
 	printf("gpu edge_scan : %d\n", edge_psum[128*128*64*3-1]);
-	// printf("gpu edge_scan : %d\n", edge_psum[128*128*64*3]);
-	exit(1);
 
-	//queue.enqueueCopy(&mc.scan.d_epsum, &h_edgescan, dim.x * dim.y*dim.z*3*sizeof(uint32_t) - sizeof(uint32_t), 0, sizeof(uint32_t),false);
-	//queue.enqueueCopy(&mc.scan.d_cpsum, &h_cellscan, dim.x*dim.y*dim.z*sizeof(uint32_t) - sizeof(uint32_t), 0, sizeof(uint32_t), false);
-	//mc.general.d_metainfo.copyTo(&dim, sizeof(MetaInfo2));
+	queue.enqueueCopy(&mc.scan.d_epsum, &h_edgescan, dim.x * dim.y*dim.z*3*sizeof(uint32_t) - sizeof(uint32_t), 0, sizeof(uint32_t),false);
+	queue.enqueueCopy(&mc.scan.d_cpsum, &h_cellscan, dim.x*dim.y*dim.z*sizeof(uint32_t) - sizeof(uint32_t), 0, sizeof(uint32_t), false);
 	queue.waitIdle();
 	float *vertices = new float[ 3 * h_edgescan ];
 	uint32_t *faces = new uint32_t[h_cellscan*3];
 	float *normals = new float[3 * h_edgescan];
 	LOG("nr_vertices : %d\n", h_edgescan);
 	LOG("nr_faces : %d\n", h_cellscan);
-	//queue.enqueueCopy(&mc.outputs.vertices, vertices, 0, 0, h_edgescan*sizeof(float)*3);
-	//queue.enqueueCopy(&mc.outputs.indices, faces, 0, 0, h_cellscan*sizeof(uint32_t)*3);
+	queue.enqueueCopy(&mc.outputs.vertices, vertices, 0, 0, h_edgescan*sizeof(float)*3);
+	queue.enqueueCopy(&mc.outputs.indices, faces, 0, 0, h_cellscan*sizeof(uint32_t)*3);
 	//queue.enqueueCopy(&mc.outputs.normals, normals, 0, 0, sizeof(float) * h_edgescan*3);
 	queue.waitIdle();
 	LOG("Meta info dim (%d, %d, %d), isovalue : %f\n", dim.x , dim.y ,dim.z ,dim.isovalue);
 	LOG("GPU Edge Scan : %d\n", h_edgescan);
 	LOG("GPU Cell Scan : %d\n", h_cellscan);
 	LOG("Save As Object\n");
-	saveAsObj("test.obj", vertices , faces, normals, h_edgescan,h_cellscan);
+	saveAsObj("test.obj", vertices , faces, nullptr, h_edgescan,h_cellscan);
 	delete [] vertices;
 	delete [] faces;
 	delete[] h_volume;
