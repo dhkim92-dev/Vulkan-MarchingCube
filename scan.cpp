@@ -53,7 +53,10 @@ void Scan::destroy(){
 	}
     d_grps.clear();
     // LOG("d_grps destroyed()\n");
-	d_limit.destroy();
+	for(uint32_t i = 0 ; i < nr_desc_alloc ; i++){
+		d_limit[i].destroy();
+	}
+	//destroy();
     // LOG("d_limit destroyed()\n");
 }
 
@@ -92,7 +95,9 @@ void Scan::setupBuffers(){
 		l_sizes.push_back(size);
 		h_limits.push_back(size);
 	}
-	d_limit.create(ctx, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 4, nullptr);
+	d_limit = new Buffer[d_grps.size() - 1];
+	for(uint32_t i = 0 ; i < d_grps.size() - 1; i++)
+		d_limit[i].create(ctx, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 4, &h_limits[i]);
 }
 
 void Scan::setupDescriptorPool(){
@@ -148,6 +153,8 @@ void Scan::setupKernels(){
 	for(uint32_t i = 0 ; i < nr_alloc ; i++)
 		program.uniform_update.allocateDescriptorSet(desc_pool, &uniform_update_sets[i], 1);
 	nr_desc_alloc = nr_alloc;
+
+	LOG("nr allocation size : %d\n", nr_desc_alloc);
 }
 
 void Scan::build(){
@@ -193,42 +200,43 @@ void Scan::setupCommandBuffer(Buffer *d_input, Buffer *d_output, VkEvent wait_ev
 	}
 	LOG("command start\n");
 	command = queue->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, 0, true);
+	/*
+	VkBufferMemoryBarrier input_barrier = d_inputs[0]->barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+	queue->waitEvents(command, &wait_event, 1, 
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				nullptr, 0 ,
+				&input_barrier, 1,
+				nullptr, 0);
+		m*/
+
 	LOG("set event start\n");
+	printf("d_grps.size : %d\n", d_grps.size());
 	for(uint32_t i = 0 ; i < d_grps.size() ; i++){
 		if(d_grps[i] != nullptr){
 			LOG("scan4 iter %d\n",i);
 			LOG("h_limits[%d] : %d\n", i, h_limits[i]);
-			d_limit.copyFrom(&h_limits[i], 4);
+			//d_limit[i].copyFrom(&h_limits[i], 4);
 			program.scan4.setKernelArgs(scan4_sets[i], {
 				{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_inputs[i]->descriptor, nullptr},
 				{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_outputs[i]->descriptor, nullptr},
 				{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_grps[i]->descriptor, nullptr},
-				{3, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &d_limit.descriptor, nullptr}
+				{3, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &d_limit[i].descriptor, nullptr}
 			});
 			queue->bindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, program.scan4.pipeline);
 			queue->bindDescriptorSets(command, VK_PIPELINE_BIND_POINT_COMPUTE, program.scan4.layouts.pipeline,
 				0, &scan4_sets[i], 1, 0, nullptr);
 
 			if(i == 0){
+				//queue->setEvent(command, event, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+				//}else{
 				VkBufferMemoryBarrier input_barrier = d_inputs[i]->barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-				queue->setEvent(command, event, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-				queue->waitEvents(command, &wait_event, 1, 
-						VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-						nullptr, 0 ,
-						&input_barrier, 1,
-						nullptr, 0);
-			}else{
-				VkBufferMemoryBarrier input_barrier = d_inputs[i]->barrier(VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT);
 				queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,
 				nullptr, 0,&input_barrier,1,nullptr, 0);
 			}
 			queue->dispatch(command, (g_sizes[i] + 63 )/ 64, 1, 1);
-			VkBufferMemoryBarrier output_barrier = d_outputs[i]->barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-			queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,
-			nullptr, 0, &output_barrier, 1, nullptr, 0);
-			if(i==0){
-				break;
-			}
+			// VkBufferMemoryBarrier output_barrier = d_outputs[i]->barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+			// queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,
+			// nullptr, 0, &output_barrier, 1, nullptr, 0);
 		}else{
 			LOG("scan_ed %d\n",i);
 			program.scan_ed.setKernelArgs(scan_ed_set, {
@@ -240,21 +248,20 @@ void Scan::setupCommandBuffer(Buffer *d_input, Buffer *d_output, VkEvent wait_ev
 			queue->bindDescriptorSets(command, VK_PIPELINE_BIND_POINT_COMPUTE, program.scan_ed.layouts.pipeline, 0,
 									&scan_ed_set, 1, 0, nullptr);
 			LOG("scaned bind Kernel done\n");
-			VkBufferMemoryBarrier input_barrier = d_inputs[i]->barrier(VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT);
-			queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,
-				nullptr, 0, &input_barrier, 1, nullptr, 0);
-			LOG("scaned barrier create\n");
+			// VkBufferMemoryBarrier input_barrier = d_inputs[i]->barrier(VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT);
+			// queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,
+				// nullptr, 0, &input_barrier, 1, nullptr, 0);
+			// LOG("scaned barrier create\n");
 			queue->dispatch(command, g_sizes[i], 1, 1);
-			LOG("scaned dispatch\n");
-			VkBufferMemoryBarrier output_barrier = d_outputs[i]->barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-			queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
-				nullptr, 0, &output_barrier, 1, nullptr, 0);
-			LOG("Output bind dispatch\n");
+			// LOG("scaned dispatch\n");
+			// VkBufferMemoryBarrier output_barrier = d_outputs[i]->barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+			// queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
+				// nullptr, 0, &output_barrier, 1, nullptr, 0);
+			// LOG("Output bind dispatch\n");
 		}
 	}
 
 	for(int i = static_cast<uint32_t>(d_grps.size()) - 1 ; i >= 0 ; i--){
-		printf("%d\n",i);
 		if(d_grps[i] != nullptr){
 			LOG("uniform update %d\n",i);
 			program.uniform_update.setKernelArgs(uniform_update_sets[i], {
@@ -266,17 +273,18 @@ void Scan::setupCommandBuffer(Buffer *d_input, Buffer *d_output, VkEvent wait_ev
 			queue->bindDescriptorSets(command, VK_PIPELINE_BIND_POINT_COMPUTE, program.uniform_update.layouts.pipeline,
 									 0, &uniform_update_sets[i], 1, 0, nullptr);
 			LOG("uniform update bindDescriptorSets\n");
-			VkBufferMemoryBarrier input_barrier = d_grps[i]->barrier(VK_ACCESS_SHADER_WRITE_BIT,VK_ACCESS_SHADER_READ_BIT);
-			LOG("uniform update barrier\n");
-			queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, nullptr, 0, &input_barrier, 1, nullptr,  0);
-			LOG("uniform update dispatch\n");
+			// VkBufferMemoryBarrier input_barrier = d_grps[i]->barrier(VK_ACCESS_SHADER_WRITE_BIT,VK_ACCESS_SHADER_READ_BIT);
+			// LOG("uniform update barrier\n");
+			// queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, nullptr, 0, &input_barrier, 1, nullptr,  0);
+			// LOG("uniform update dispatch\n");
 			queue->dispatch(command, (g_sizes[i] + 63)/64, 1, 1);
-			VkBufferMemoryBarrier output_barrier = d_outputs[i]->barrier(VK_ACCESS_SHADER_WRITE_BIT,VK_ACCESS_SHADER_READ_BIT);
-			LOG("uniform update barrier\n");
-			queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, nullptr, 0, &output_barrier, 1, nullptr, 0);
+			// VkBufferMemoryBarrier output_barrier = d_outputs[i]->barrier(VK_ACCESS_SHADER_WRITE_BIT,VK_ACCESS_SHADER_READ_BIT);
+			// LOG("uniform update barrier\n");
+			// queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, nullptr, 0, &output_barrier, 1, nullptr, 0);
 		}
 	}
-
+	VkBufferMemoryBarrier output_barrier = d_output->barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+	queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, nullptr, 0, &output_barrier, 1 , nullptr, 0);
 	VK_CHECK_RESULT(queue->endCommandBuffer(command));
 	LOG("Scan::setupCommandBuffer() done\n");
 }

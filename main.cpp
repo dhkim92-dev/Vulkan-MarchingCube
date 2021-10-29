@@ -330,11 +330,8 @@ int main(int argc, char* argv[]){
 	
 	queue.enqueueCopy(&mc.scan.d_epsum, edge_psum ,0, 0, dim.x*dim.y*dim.z*3*sizeof(uint32_t));
 	queue.waitIdle();
-	s = 0;
-	for(uint32_t i = 0 ; i < dim.x * dim.y * dim.z * 3 ; i++){
-		s+=edge_psum[i];
-	}
-	printf("gpu edge_scan : %d\n", s);
+	printf("gpu edge_scan : %d\n", edge_psum[128*128*64*3-1]);
+	// printf("gpu edge_scan : %d\n", edge_psum[128*128*64*3]);
 	exit(1);
 
 	//queue.enqueueCopy(&mc.scan.d_epsum, &h_edgescan, dim.x * dim.y*dim.z*3*sizeof(uint32_t) - sizeof(uint32_t), 0, sizeof(uint32_t),false);

@@ -17,7 +17,7 @@ private :
 	VkDescriptorPool desc_pool = VK_NULL_HANDLE;
 	VkPipelineCache cache = VK_NULL_HANDLE;
 public :
-	Buffer d_limit; // device buffer to save limits
+	Buffer *d_limit; // device buffer to save limits
 	vector<uint32_t> h_limits;
 	vector<uint32_t> g_sizes;
 	vector<uint32_t> l_sizes;
