@@ -71,6 +71,7 @@ public :
 
 	struct GenVertex{
 		Kernel kernel;
+		VkEvent event=VK_NULL_HANDLE;
 		VkCommandBuffer command = VK_NULL_HANDLE;
 	}gen_vertices;
 
@@ -104,6 +105,7 @@ public :
 	~MarchingCube();
 	void create(Context *context, CommandQueue *commandQueue);
 	void destroy();
+	void destroyEvents();
 	void destroyBuffers();
 	void destroyKernels();
 	void freeCommandBuffers();
