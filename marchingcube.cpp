@@ -468,7 +468,8 @@ void MarchingCube::run(VkSemaphore *wait_semaphores, uint32_t nr_waits, VkSemaph
 		gen_normals.command
 	};
 	queue->resetFences(&fence, 1);
-	queue->submit(commands, 8, 0, nullptr, 0, nullptr, 0, fence);
+	VkPipelineStageFlags wait_flags = (nr_signals > 0) ? VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT : 0x0;
+	VK_CHECK_RESULT(queue->submit(commands, 8, wait_flags, wait_semaphores, nr_waits, signal_semaphores, nr_signals, fence));
 	queue->waitFences(&fence, 1);
 }
 

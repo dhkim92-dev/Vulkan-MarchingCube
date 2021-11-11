@@ -24,16 +24,6 @@ private :
 	}meta_info;
 
 public :
-	// struct{
-	// 	Kernel kernel;
-	// 	Buffer d_output;
-	// 	VkCommandBuffer command;
-	// 	void destroy(){
-	// 		kernel.destroy();
-	// 		d_output.destroy();
-	// 	}
-	// }volume_test;
-	
 	struct{
 		VkDescriptorSet edge_test = VK_NULL_HANDLE;
 		VkDescriptorSet	cell_test = VK_NULL_HANDLE;

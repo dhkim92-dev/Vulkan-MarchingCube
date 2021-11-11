@@ -198,12 +198,21 @@ void Scan::setupCommandBuffer(Buffer *d_input, Buffer *d_output, VkEvent wait_ev
 		}
 	}
 	command = queue->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, 0, true);
+
+
 	VkBufferMemoryBarrier input_barrier = d_inputs[0]->barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 	queue->waitEvents(command, &wait_event, 1, 
 				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 				nullptr, 0 ,
 				&input_barrier, 1,
 				nullptr, 0);
+	vkCmdFillBuffer(command, VkBuffer(*d_outputs[0]), 0, VkDeviceSize(*d_outputs[0]), 0);
+	for(uint32_t i = 0 ; i < d_grps.size() ; i++){
+		if(d_grps[i] != nullptr){
+			vkCmdFillBuffer(command, VkBuffer(*d_grps[i]), 0, VkDeviceSize(*d_grps[i]), 0);
+		}
+	}
+
 
 	for(uint32_t i = 0 ; i < d_grps.size() ; i++){
 		if(d_grps[i] != nullptr){
