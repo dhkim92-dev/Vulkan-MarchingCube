@@ -21,7 +21,7 @@ void main(){
 	uint idx = thread_id.x + 3 * dim.x * thread_id.y + 3*dim.x*dim.y * thread_id.z;
 	if(idx >= limit) return ;	
 	if(edge_type[idx] == uint(1)){
-		limit = 3*(edge_scan[idx] - 1);
+		limit = 6*(edge_scan[idx] - 1);
 		d_output[limit] = idx;
 	}
 }

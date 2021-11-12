@@ -29,7 +29,7 @@ void main(){
 	uvec3 pos = gl_WorkGroupSize * gl_WorkGroupID + gl_LocalInvocationID;
 	uint thread_id = pos.x + pos.y *3* dim.x + pos.z * 3* dim.x * dim.y;
 	if(thread_id > edge_scan[3*dim.x*dim.y*dim.z - 1]) return ;
-	uint edge_id = edge_compact[thread_id * 3];
+	uint edge_id = edge_compact[thread_id * 6];
 	uint dir = edge_id % 3;
 	edge_id /= 3;
 	uvec3 dvec = uvec3(dir == 0,dir==1, dir ==2);
@@ -40,7 +40,7 @@ void main(){
 	vec3 ip = vec3(p0) + vec3(dvec) * (isovalue - v0) /(v1 - v0);
 	ip /= float(dir);
 	ip -= 0.5;
-	d_dst[thread_id*3] =  ip.x;
-	d_dst[thread_id*3+1] = ip.y;
-	d_dst[thread_id*3+2] = ip.z;
+	d_dst[thread_id*6] =  ip.x;
+	d_dst[thread_id*6+1] = ip.y;
+	d_dst[thread_id*6+2] = ip.z;
 }

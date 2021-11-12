@@ -133,18 +133,18 @@ void MarchingCube::setupBuffers(){
 							VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 							meta_info.x * meta_info.y * meta_info.z * sizeof(uint32_t), nullptr);
 	outputs.vertices.create(ctx, 
-							VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+							VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 							VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-							(meta_info.x * meta_info.y * meta_info.z * sizeof(float) * 3), nullptr);
+							6*(meta_info.x * meta_info.y * meta_info.z * sizeof(float)), nullptr);
 	outputs.indices.create(ctx, 
-							VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+							VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 							VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-							sizeof(uint32_t) * meta_info.x * meta_info.y * meta_info.z, nullptr);
+							3*(meta_info.x * meta_info.y * meta_info.z * sizeof(uint32_t)), nullptr);
 
 	outputs.normals.create(ctx, 
-						    VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+						    VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 							VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-							(meta_info.x * meta_info.y * meta_info.z * sizeof(float) * 3), nullptr);
+							4, nullptr);
 
 	uint32_t h_cast_table[12] ={
 		0,
@@ -316,6 +316,9 @@ void MarchingCube::setupEdgeTestCommand(){
 		{2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &general.d_metainfo.descriptor, nullptr}
 	});
 	//queue->bindKernel(edge_test.command, &edge_test.kernel);
+	vkCmdFillBuffer(edge_test.command, VkBuffer(outputs.vertices), 0, VkDeviceSize(outputs.vertices), 0);
+	vkCmdFillBuffer(edge_test.command, VkBuffer(outputs.indices), 0, VkDeviceSize(outputs.indices), 0);
+	//vkCmdFillBuffer(edge_test.command, VkBuffer(outputs.normals), 0, VkDeviceSize(outputs.normals), 0);
 	queue->bindPipeline(edge_test.command, VK_PIPELINE_BIND_POINT_COMPUTE, edge_test.kernel.pipeline);
 	queue->bindDescriptorSets(edge_test.command, VK_PIPELINE_BIND_POINT_COMPUTE, edge_test.kernel.layouts.pipeline, 0, &desc_sets.edge_test, 1, 0, nullptr);
 	queue->dispatch(edge_test.command, (meta_info.x+3)/4, (meta_info.y+3)/4, (meta_info.z+3)/4);
@@ -454,6 +457,15 @@ void MarchingCube::setupCommandBuffers(){
 	setupGenVerticesCommand();
 	setupGenFacesCommand();
 	setupGenNormalCommand();
+
+	printf("edge_test : %p\n", edge_test.command);
+	printf("cell_test : %p\n", cell_test.command);
+	printf("edge_scan : %p\n", edge_scan.command);
+	printf("cell_scan : %p\n", cell_scan.command);
+	printf("edge_compact : %p\n", edge_compact.command);
+	printf("gen_vertices : %p\n", gen_vertices.command);
+	printf("gen_faces : %p\n", gen_faces.command);
+	printf("gen_normals : %p\n", gen_normals.command);
 }
 
 void MarchingCube::run(VkSemaphore *wait_semaphores, uint32_t nr_waits, VkSemaphore *signal_semaphores, uint32_t nr_signals){
@@ -469,7 +481,7 @@ void MarchingCube::run(VkSemaphore *wait_semaphores, uint32_t nr_waits, VkSemaph
 	};
 	queue->resetFences(&fence, 1);
 	VkPipelineStageFlags wait_flags = (nr_signals > 0) ? VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT : 0x0;
-	VK_CHECK_RESULT(queue->submit(commands, 8, wait_flags, wait_semaphores, nr_waits, signal_semaphores, nr_signals, fence));
+	VK_CHECK_RESULT(queue->submit(commands, 8, &wait_flags, wait_semaphores, nr_waits, signal_semaphores, nr_signals, fence));
 	queue->waitFences(&fence, 1);
 }
 

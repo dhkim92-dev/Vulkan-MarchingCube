@@ -3,7 +3,7 @@ layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
 layout(std430, binding = 0) writeonly buffer Normals{
 	float d_normals[];
 };
-layout(std430, binding = 1) readonly buffer Vertices{
+layout(std430, binding = 1) buffer Vertices{
 	float d_vertices[];
 };
 layout(binding = 2) readonly buffer EdgeScan{
@@ -30,10 +30,11 @@ void main(){
 	uint limit = edge_scan[dim.x*dim.y*dim.z*3-1];
 	uvec3 thread_id = gl_WorkGroupID * gl_WorkGroupSize + gl_LocalInvocationID ;
 	uint id = thread_id.x + thread_id.y * 3 * dim.x + thread_id.z * 3 * dim.x * dim.y;
+	
 	if(id >=limit) return ;
 
 	uint max_val = max(max(dim.x, dim.y), dim.z);
-	vec3 v = vec3( d_vertices[3*id], d_vertices[3*id + 1], d_vertices[3*id + 2] ) + 0.5;
+	vec3 v = vec3( d_vertices[6*id], d_vertices[6*id + 1], d_vertices[6*id + 2] ) + 0.5;
 	v*=max_val;
 	vec3 base = trunc(v);
 	uvec3 dir = uvec3(v.x!=base.x, v.y !=  base.y, v.z != base.z );
@@ -50,7 +51,7 @@ void main(){
 
 	vec3 n = normalize(mix(n1, n2, t));
 
-	d_normals[3*id] = n.x;
-	d_normals[3*id + 1] = n.y;
-	d_normals[3*id + 2] = n.z;
+	d_vertices[6*id + 3] = n.x;
+	d_vertices[6*id + 4] = n.y;
+	d_vertices[6*id + 5] = n.z;
 }
