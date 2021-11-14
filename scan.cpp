@@ -15,7 +15,7 @@ Scan::~Scan(){
 
 void Scan::destroy(){
     LOG("Scan::destroy()\n");
-	VkDevice device = VkDevice(*ctx);
+	VkDevice device = ctx->getDevice();
 	if(cache){
         // LOG("cache destroy!\n");
 		vkDestroyPipelineCache(device, cache, nullptr);
@@ -45,7 +45,7 @@ void Scan::destroy(){
 	}
 
 	if(desc_pool != VK_NULL_HANDLE){
-        vkDestroyDescriptorPool(VkDevice(*ctx), desc_pool, nullptr);
+        vkDestroyDescriptorPool(device, desc_pool, nullptr);
         desc_pool = VK_NULL_HANDLE;
     }
     
@@ -104,13 +104,14 @@ void Scan::setupBuffers(){
 
 void Scan::setupDescriptorPool(){
     LOG("Scan::setup Descriptor Pool\n");
+	VkDevice device = ctx->getDevice();
 	VkDescriptorPoolSize pool_size[2] = {
 		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 18),
 		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 8),
 	};
 	VkDescriptorPoolCreateInfo desc_pool_CI = infos::descriptorPoolCreateInfo(2, pool_size,  12);
 	desc_pool_CI.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-	VK_CHECK_RESULT(vkCreateDescriptorPool(VkDevice(*ctx), &desc_pool_CI, nullptr, &desc_pool));
+	VK_CHECK_RESULT(vkCreateDescriptorPool(device, &desc_pool_CI, nullptr, &desc_pool));
 
     LOG("Scan::setup Descriptor Pool Done\n");
 }
@@ -158,6 +159,7 @@ void Scan::setupKernels(){
 
 void Scan::build(){
 	LOG("Scan::build()\n");
+	VkDevice device = ctx->getDevice();
 	uint32_t data[2] = {2*h_limits.back(), h_limits.back()};
     // LOG("scan_ed local_mem_size : %d\n", 4 * data[0]);
     // LOG("scan_ed local_dispatch_size : %d\n", data[1]);
@@ -178,7 +180,7 @@ void Scan::build(){
 	if(!cache){
 		VkPipelineCacheCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-		VK_CHECK_RESULT(vkCreatePipelineCache(VkDevice(*ctx), &info, nullptr, &cache));
+		VK_CHECK_RESULT(vkCreatePipelineCache(device, &info, nullptr, &cache));
 	}
 	program.scan4.build(cache, nullptr);
 	program.scan_ed.build(cache, &scan_ed_SI);
@@ -206,10 +208,10 @@ void Scan::setupCommandBuffer(Buffer *d_input, Buffer *d_output, VkEvent wait_ev
 				nullptr, 0 ,
 				&input_barrier, 1,
 				nullptr, 0);
-	vkCmdFillBuffer(command, VkBuffer(*d_outputs[0]), 0, VkDeviceSize(*d_outputs[0]), 0);
+	vkCmdFillBuffer(command, d_outputs[0]->getBuffer(), 0, d_outputs[0]->getSize(), 0);
 	for(uint32_t i = 0 ; i < d_grps.size() ; i++){
 		if(d_grps[i] != nullptr){
-			vkCmdFillBuffer(command, VkBuffer(*d_grps[i]), 0, VkDeviceSize(*d_grps[i]), 0);
+			vkCmdFillBuffer(command, d_grps[i]->getBuffer(), 0, d_grps[i]->getSize(), 0);
 		}
 	}
 

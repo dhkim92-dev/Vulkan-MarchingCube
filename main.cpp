@@ -146,7 +146,7 @@ class MarchingCubeRenderer : public Application{
 
 	virtual void createSurface(){
 		LOG("createSurface()\n");
-		glfwCreateWindowSurface(VkInstance(*engine), window, nullptr, &surface);
+		glfwCreateWindowSurface(engine->getInstance(), window, nullptr, &surface);
 	}
 
 	virtual void mainLoop(){
@@ -174,8 +174,9 @@ class MarchingCubeRenderer : public Application{
 
 	void prepareCompute(){
 		VkSemaphoreCreateInfo semaphore_CI = infos::semaphoreCreateInfo();
-		VK_CHECK_RESULT(vkCreateSemaphore(VkDevice(*context), &semaphore_CI, nullptr, &compute.ready));
-		VK_CHECK_RESULT(vkCreateSemaphore(VkDevice(*context), &semaphore_CI, nullptr, &compute.complete));
+		VkDevice device = context->getDevice();
+		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphore_CI, nullptr, &compute.ready));
+		VK_CHECK_RESULT(vkCreateSemaphore(device, &semaphore_CI, nullptr, &compute.complete));
 		// dim.x = 256;
 		// dim.y = 256;
 		// dim.z = 256;
@@ -263,7 +264,7 @@ class MarchingCubeRenderer : public Application{
 			draw_command_buffers[i] = graphics_queue->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 		}
 
-		uint32_t sz_indices = VkDeviceSize(mc.outputs.indices)/sizeof(uint32_t);
+		uint32_t sz_indices = static_cast<uint32_t>(mc.outputs.indices.getSize())/sizeof(uint32_t);
 		//LOG("sz_vertices : %d sz indices : %d\n", sz_vertices, sz_indices);
 		for(uint32_t i = 0 ; i < draw_command_buffers.size() ; ++i){
 			graphics_queue->beginCommandBuffer(draw_command_buffers[i]);
@@ -281,8 +282,8 @@ class MarchingCubeRenderer : public Application{
 			vkCmdBindPipeline(draw_command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, draw_program->pipeline);
 			// VkBuffer vertex_buffer[] = {VkBuffer(mc.outputs.vertices)};
 			// VkBuffer indices_buffer[] = {VkBuffer(mc.outputs.indices)};
-			VkBuffer vertex_buffer[] = {VkBuffer(mc.outputs.vertices)};
-			VkBuffer indices_buffer[] = {VkBuffer(mc.outputs.indices)};
+			VkBuffer vertex_buffer[] = {mc.outputs.vertices.getBuffer()};
+			VkBuffer indices_buffer[] = {mc.outputs.indices.getBuffer()};
 
 			VkDeviceSize offsets[] = {0};
 			vkCmdBindVertexBuffers(draw_command_buffers[i], 0, 1, vertex_buffer ,offsets);

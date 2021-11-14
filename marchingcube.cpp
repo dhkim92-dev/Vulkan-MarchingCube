@@ -183,16 +183,18 @@ void MarchingCube::setupDescriptorPool(){
 	);
 	desc_pool_CI.flags= VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 	LOG("descriptor pool : %p\n", desc_pool);
-	VK_CHECK_RESULT(vkCreateDescriptorPool(VkDevice(*ctx), &desc_pool_CI, nullptr, &desc_pool));
+	VkDevice device = ctx->getDevice();
+	VK_CHECK_RESULT(vkCreateDescriptorPool(device, &desc_pool_CI, nullptr, &desc_pool));
 	LOG("descriptor pool : %p\n", desc_pool);
 	LOG("MarchingCube::setupDescriptorPool() end\n");
 }
 
 void MarchingCube::setupKernels(){
+	VkDevice device = ctx->getDevice();
 	if(cache == VK_NULL_HANDLE){
 		VkPipelineCacheCreateInfo cache_CI = {};
 		cache_CI.sType=VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-		VK_CHECK_RESULT(vkCreatePipelineCache(VkDevice(*ctx), &cache_CI, nullptr, &cache));
+		VK_CHECK_RESULT(vkCreatePipelineCache(device, &cache_CI, nullptr, &cache));
 	}
 	LOG("MarchingCube::setupKernel()\n");
 	edge_test.kernel.create(ctx, "shaders/edge_test.comp.spv");
@@ -269,7 +271,7 @@ void MarchingCube::setupKernels(){
 
 void MarchingCube::destroy(){
 	LOG("MarchingCube::destroy()\n");		
-	VkDevice device = VkDevice(*ctx);
+	VkDevice device = ctx->getDevice();
 	destroyBuffers();
 	destroyKernels();
 	destroyEvents();
@@ -316,8 +318,8 @@ void MarchingCube::setupEdgeTestCommand(){
 		{2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &general.d_metainfo.descriptor, nullptr}
 	});
 	//queue->bindKernel(edge_test.command, &edge_test.kernel);
-	vkCmdFillBuffer(edge_test.command, VkBuffer(outputs.vertices), 0, VkDeviceSize(outputs.vertices), 0);
-	vkCmdFillBuffer(edge_test.command, VkBuffer(outputs.indices), 0, VkDeviceSize(outputs.indices), 0);
+	vkCmdFillBuffer(edge_test.command, outputs.vertices.getBuffer(), 0, outputs.vertices.getSize(), 0);
+	vkCmdFillBuffer(edge_test.command, outputs.indices.getBuffer(), 0, outputs.indices.getSize(), 0);
 	//vkCmdFillBuffer(edge_test.command, VkBuffer(outputs.normals), 0, VkDeviceSize(outputs.normals), 0);
 	queue->bindPipeline(edge_test.command, VK_PIPELINE_BIND_POINT_COMPUTE, edge_test.kernel.pipeline);
 	queue->bindDescriptorSets(edge_test.command, VK_PIPELINE_BIND_POINT_COMPUTE, edge_test.kernel.layouts.pipeline, 0, &desc_sets.edge_test, 1, 0, nullptr);
@@ -503,7 +505,7 @@ void MarchingCube::destroyBuffers(){
 
 void MarchingCube::destroyKernels(){
 	LOG("MarchingCube::destroyKernels()\n");
-	VkDevice device = VkDevice(*ctx);
+	VkDevice device = ctx->getDevice();
 	VkDescriptorSet* sets[6] = {
 		&desc_sets.edge_test,
 		&desc_sets.cell_test,
@@ -537,7 +539,7 @@ void MarchingCube::destroyKernels(){
 
 void MarchingCube::freeCommandBuffers(){
 	LOG("MarchingCube::freeCommandBuffers()\n");
-	VkDevice device = VkDevice(*ctx);
+	VkDevice device = ctx->getDevice();
 	VkCommandBuffer commands[6] = {
 		edge_test.command,
 		cell_test.command,
