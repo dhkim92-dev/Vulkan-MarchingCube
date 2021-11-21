@@ -28,10 +28,6 @@ vector<const char *> getRequiredExtensions(  ){
 	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
 	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-	if(validationEnable) {
-		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-	}
 	glfwTerminate();
 	return extensions;
 }
@@ -127,8 +123,12 @@ class MarchingCubeRenderer : public Application{
 	bool first_draw = true;
 	//VkFence draw_fence = VK_NULL_HANDLE;
 	public :
-	explicit MarchingCubeRenderer(string app_name, string engine_name, int h, int w, vector<const char *> instance_extensions, vector<const char*> device_extensions, vector<const char*> validations) : Application(app_name, engine_name, h, w, instance_extensions, device_extensions, validations){
-
+	explicit MarchingCubeRenderer(string _name, int h, int w, 
+		vector<const char *> instance_extensions, 
+		vector<const char*> device_extensions, 
+		vector<const char*> validations) : Application(_name, h, w, instance_extensions, device_extensions, validations
+	){
+		this->engine->setDebug(true);
 	}
 	~MarchingCubeRenderer(){
 		mc.destroy();
@@ -183,17 +183,17 @@ class MarchingCubeRenderer : public Application{
 		// dim.isovalue = 0.02f;
 		dim.x =128;
 		dim.y =128;
-		dim.z =128;
+		dim.z =64;
 		dim.isovalue = 0.03f;
 
 		h_volume = new float[dim.x * dim.y * dim.z];
-		//loadVolume("data/dragon_vrip_FLT32_128_128_64.raw", dim.x*dim.y*dim.z*sizeof(float), (void *)h_volume);
+		loadVolume("data/dragon_vrip_FLT32_128_128_64.raw", dim.x*dim.y*dim.z*sizeof(float), (void *)h_volume);
 		//loadVolume("data/head_FLT32_256_256_225.raw", dim.x*dim.y*dim.z*sizeof(float), (void *)h_volume);
 		// loadVolume("data/atom_FLT32_128_128_128.raw", dim.x*dim.y*dim.z*sizeof(float), (void *)h_volume);
 		//loadVolume("data/skull_FLT32_256_256_256.raw", dim.x*dim.y*dim.z*sizeof(float), (void *)h_volume);
 		//loadVolume("data/skull_FLT32_256_256_256.raw", dim.x*dim.y*dim.z*sizeof(float), (void *)h_volume);
 		// loadVolume("data/Engine_FLT32_256_256_256.raw", dim.x*dim.y*dim.z*sizeof(float), (void *)h_volume);
-		loadVolume("data/Engine_FLT32_128_128_128.raw", dim.x*dim.y*dim.z*sizeof(float), (void *)h_volume);
+		// loadVolume("data/Engine_FLT32_128_128_128.raw", dim.x*dim.y*dim.z*sizeof(float), (void *)h_volume);
 		// loadVolume("data/Genus3_FLT32_512_512_256.raw", dim.x*dim.y*dim.z*sizeof(float), (void *)h_volume);
 		//loadVolume("data/horse_FLT32_128_256_256.raw", dim.x*dim.y*dim.z*sizeof(float), (void *)h_volume);
 
@@ -375,8 +375,7 @@ void benchmark(){
 	vector<const char *> validations={"VK_LAYER_KHRONOS_validation"};
 	vector<const char *> device_extensions= {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 	Engine engine(
-		"Marching Cube",
-		"Vulkan Renderer",
+		"Vulkan-MarchingCube",
 		instance_extensions,
 		device_extensions,
 		validations
@@ -427,15 +426,14 @@ void benchmark(){
 }
 
 int main(int argc, char* argv[]){
-	vector<const char *> instance_extensions(getRequiredExtensions());
+	//vector<const char *> instance_extensions(getRequiredExtensions());
+	vector<const char *> instance_extensions={VK_KHR_SURFACE_EXTENSION_NAME, "VK_EXT_metal_surface", VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
 	vector<const char *> validations={"VK_LAYER_KHRONOS_validation"};
 	vector<const char *> device_extensions= {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-	string _name = "vulkan";
-	string engine_name = "engine";
-	
+	string _name = "Vulkan-MarchingCube";
 		
 	try {
-		MarchingCubeRenderer app(_name, engine_name,600, 800, instance_extensions, device_extensions, validations);
+		MarchingCubeRenderer app(_name, 600, 800, instance_extensions, device_extensions, validations);
 		app.run();
 	} catch(std::exception& e) {
 		cout << "error occured " << e.what() << " on File " << __FILE__ << " line : " << __LINE__ << endl;
