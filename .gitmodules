@@ -1,3 +1,4 @@
-[submodule "VKEngine"]
-	path = VKEngine
+
+[submodule "externals/VKEngine"]
+	path = externals/VKEngine
 	url = https://github.com/elensar92/VKEngine
