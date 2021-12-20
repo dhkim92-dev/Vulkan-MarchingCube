@@ -426,8 +426,8 @@ void benchmark(){
 }
 
 int main(int argc, char* argv[]){
-	//vector<const char *> instance_extensions(getRequiredExtensions());
-	vector<const char *> instance_extensions={VK_KHR_SURFACE_EXTENSION_NAME, "VK_EXT_metal_surface"};
+	vector<const char *> instance_extensions(getRequiredExtensions());
+	//vector<const char *> instance_extensions={VK_KHR_SURFACE_EXTENSION_NAME, "VK_EXT_metal_surface"};
 	vector<const char *> validations={"VK_LAYER_KHRONOS_validation"};
 	vector<const char *> device_extensions= {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 	string _name = "Vulkan-MarchingCube";
