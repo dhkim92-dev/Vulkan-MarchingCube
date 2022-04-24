@@ -156,11 +156,11 @@ class MarchingCubeRenderer : public Application{
 			glfwPollEvents();
 			draw();
 			updateUniforms();
-			mc.setIsovalue(isovalue);
-			isovalue += 0.001 * delta;
-			if(abs(isovalue) > 0.05){
-				delta = -delta;
-			}
+			//mc.setIsovalue(isovalue);
+			//isovalue += 0.001 * delta;
+			//if(abs(isovalue) > 0.05){
+			//	delta = -delta;
+			//}
 			// printf("current_frame_index : %d\n", current_frame_index);
 		}
 		glfwDestroyWindow(window);
