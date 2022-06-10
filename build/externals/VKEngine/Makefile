@@ -175,29 +175,19 @@ VKEngine/fast:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/build
 .PHONY : VKEngine/fast
 
-src/vk_application.o: src/vk_application.cpp.o
-.PHONY : src/vk_application.o
+# Convenience name for target.
+externals/VKEngine/CMakeFiles/VKEngineStatic.dir/rule:
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 externals/VKEngine/CMakeFiles/VKEngineStatic.dir/rule
+.PHONY : externals/VKEngine/CMakeFiles/VKEngineStatic.dir/rule
 
-# target to build an object file
-src/vk_application.cpp.o:
-	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_application.cpp.o
-.PHONY : src/vk_application.cpp.o
+# Convenience name for target.
+VKEngineStatic: externals/VKEngine/CMakeFiles/VKEngineStatic.dir/rule
+.PHONY : VKEngineStatic
 
-src/vk_application.i: src/vk_application.cpp.i
-.PHONY : src/vk_application.i
-
-# target to preprocess a source file
-src/vk_application.cpp.i:
-	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_application.cpp.i
-.PHONY : src/vk_application.cpp.i
-
-src/vk_application.s: src/vk_application.cpp.s
-.PHONY : src/vk_application.s
-
-# target to generate assembly for a file
-src/vk_application.cpp.s:
-	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_application.cpp.s
-.PHONY : src/vk_application.cpp.s
+# fast build rule for target.
+VKEngineStatic/fast:
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build
+.PHONY : VKEngineStatic/fast
 
 src/vk_buffer.o: src/vk_buffer.cpp.o
 .PHONY : src/vk_buffer.o
@@ -205,6 +195,7 @@ src/vk_buffer.o: src/vk_buffer.cpp.o
 # target to build an object file
 src/vk_buffer.cpp.o:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_buffer.cpp.o
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_buffer.cpp.o
 .PHONY : src/vk_buffer.cpp.o
 
 src/vk_buffer.i: src/vk_buffer.cpp.i
@@ -213,6 +204,7 @@ src/vk_buffer.i: src/vk_buffer.cpp.i
 # target to preprocess a source file
 src/vk_buffer.cpp.i:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_buffer.cpp.i
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_buffer.cpp.i
 .PHONY : src/vk_buffer.cpp.i
 
 src/vk_buffer.s: src/vk_buffer.cpp.s
@@ -221,6 +213,7 @@ src/vk_buffer.s: src/vk_buffer.cpp.s
 # target to generate assembly for a file
 src/vk_buffer.cpp.s:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_buffer.cpp.s
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_buffer.cpp.s
 .PHONY : src/vk_buffer.cpp.s
 
 src/vk_compute.o: src/vk_compute.cpp.o
@@ -229,6 +222,7 @@ src/vk_compute.o: src/vk_compute.cpp.o
 # target to build an object file
 src/vk_compute.cpp.o:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_compute.cpp.o
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_compute.cpp.o
 .PHONY : src/vk_compute.cpp.o
 
 src/vk_compute.i: src/vk_compute.cpp.i
@@ -237,6 +231,7 @@ src/vk_compute.i: src/vk_compute.cpp.i
 # target to preprocess a source file
 src/vk_compute.cpp.i:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_compute.cpp.i
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_compute.cpp.i
 .PHONY : src/vk_compute.cpp.i
 
 src/vk_compute.s: src/vk_compute.cpp.s
@@ -245,6 +240,7 @@ src/vk_compute.s: src/vk_compute.cpp.s
 # target to generate assembly for a file
 src/vk_compute.cpp.s:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_compute.cpp.s
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_compute.cpp.s
 .PHONY : src/vk_compute.cpp.s
 
 src/vk_context.o: src/vk_context.cpp.o
@@ -253,6 +249,7 @@ src/vk_context.o: src/vk_context.cpp.o
 # target to build an object file
 src/vk_context.cpp.o:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_context.cpp.o
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_context.cpp.o
 .PHONY : src/vk_context.cpp.o
 
 src/vk_context.i: src/vk_context.cpp.i
@@ -261,6 +258,7 @@ src/vk_context.i: src/vk_context.cpp.i
 # target to preprocess a source file
 src/vk_context.cpp.i:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_context.cpp.i
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_context.cpp.i
 .PHONY : src/vk_context.cpp.i
 
 src/vk_context.s: src/vk_context.cpp.s
@@ -269,7 +267,35 @@ src/vk_context.s: src/vk_context.cpp.s
 # target to generate assembly for a file
 src/vk_context.cpp.s:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_context.cpp.s
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_context.cpp.s
 .PHONY : src/vk_context.cpp.s
+
+src/vk_descriptors.o: src/vk_descriptors.cpp.o
+.PHONY : src/vk_descriptors.o
+
+# target to build an object file
+src/vk_descriptors.cpp.o:
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_descriptors.cpp.o
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_descriptors.cpp.o
+.PHONY : src/vk_descriptors.cpp.o
+
+src/vk_descriptors.i: src/vk_descriptors.cpp.i
+.PHONY : src/vk_descriptors.i
+
+# target to preprocess a source file
+src/vk_descriptors.cpp.i:
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_descriptors.cpp.i
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_descriptors.cpp.i
+.PHONY : src/vk_descriptors.cpp.i
+
+src/vk_descriptors.s: src/vk_descriptors.cpp.s
+.PHONY : src/vk_descriptors.s
+
+# target to generate assembly for a file
+src/vk_descriptors.cpp.s:
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_descriptors.cpp.s
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_descriptors.cpp.s
+.PHONY : src/vk_descriptors.cpp.s
 
 src/vk_engine.o: src/vk_engine.cpp.o
 .PHONY : src/vk_engine.o
@@ -277,6 +303,7 @@ src/vk_engine.o: src/vk_engine.cpp.o
 # target to build an object file
 src/vk_engine.cpp.o:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_engine.cpp.o
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_engine.cpp.o
 .PHONY : src/vk_engine.cpp.o
 
 src/vk_engine.i: src/vk_engine.cpp.i
@@ -285,6 +312,7 @@ src/vk_engine.i: src/vk_engine.cpp.i
 # target to preprocess a source file
 src/vk_engine.cpp.i:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_engine.cpp.i
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_engine.cpp.i
 .PHONY : src/vk_engine.cpp.i
 
 src/vk_engine.s: src/vk_engine.cpp.s
@@ -293,7 +321,35 @@ src/vk_engine.s: src/vk_engine.cpp.s
 # target to generate assembly for a file
 src/vk_engine.cpp.s:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_engine.cpp.s
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_engine.cpp.s
 .PHONY : src/vk_engine.cpp.s
+
+src/vk_functions.o: src/vk_functions.cpp.o
+.PHONY : src/vk_functions.o
+
+# target to build an object file
+src/vk_functions.cpp.o:
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_functions.cpp.o
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_functions.cpp.o
+.PHONY : src/vk_functions.cpp.o
+
+src/vk_functions.i: src/vk_functions.cpp.i
+.PHONY : src/vk_functions.i
+
+# target to preprocess a source file
+src/vk_functions.cpp.i:
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_functions.cpp.i
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_functions.cpp.i
+.PHONY : src/vk_functions.cpp.i
+
+src/vk_functions.s: src/vk_functions.cpp.s
+.PHONY : src/vk_functions.s
+
+# target to generate assembly for a file
+src/vk_functions.cpp.s:
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_functions.cpp.s
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_functions.cpp.s
+.PHONY : src/vk_functions.cpp.s
 
 src/vk_image.o: src/vk_image.cpp.o
 .PHONY : src/vk_image.o
@@ -301,6 +357,7 @@ src/vk_image.o: src/vk_image.cpp.o
 # target to build an object file
 src/vk_image.cpp.o:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_image.cpp.o
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_image.cpp.o
 .PHONY : src/vk_image.cpp.o
 
 src/vk_image.i: src/vk_image.cpp.i
@@ -309,6 +366,7 @@ src/vk_image.i: src/vk_image.cpp.i
 # target to preprocess a source file
 src/vk_image.cpp.i:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_image.cpp.i
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_image.cpp.i
 .PHONY : src/vk_image.cpp.i
 
 src/vk_image.s: src/vk_image.cpp.s
@@ -317,6 +375,7 @@ src/vk_image.s: src/vk_image.cpp.s
 # target to generate assembly for a file
 src/vk_image.cpp.s:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_image.cpp.s
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_image.cpp.s
 .PHONY : src/vk_image.cpp.s
 
 src/vk_infos.o: src/vk_infos.cpp.o
@@ -325,6 +384,7 @@ src/vk_infos.o: src/vk_infos.cpp.o
 # target to build an object file
 src/vk_infos.cpp.o:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_infos.cpp.o
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_infos.cpp.o
 .PHONY : src/vk_infos.cpp.o
 
 src/vk_infos.i: src/vk_infos.cpp.i
@@ -333,6 +393,7 @@ src/vk_infos.i: src/vk_infos.cpp.i
 # target to preprocess a source file
 src/vk_infos.cpp.i:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_infos.cpp.i
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_infos.cpp.i
 .PHONY : src/vk_infos.cpp.i
 
 src/vk_infos.s: src/vk_infos.cpp.s
@@ -341,31 +402,62 @@ src/vk_infos.s: src/vk_infos.cpp.s
 # target to generate assembly for a file
 src/vk_infos.cpp.s:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_infos.cpp.s
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_infos.cpp.s
 .PHONY : src/vk_infos.cpp.s
 
-src/vk_program.o: src/vk_program.cpp.o
-.PHONY : src/vk_program.o
+src/vk_physicaldevice.o: src/vk_physicaldevice.cpp.o
+.PHONY : src/vk_physicaldevice.o
 
 # target to build an object file
-src/vk_program.cpp.o:
-	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_program.cpp.o
-.PHONY : src/vk_program.cpp.o
+src/vk_physicaldevice.cpp.o:
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_physicaldevice.cpp.o
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_physicaldevice.cpp.o
+.PHONY : src/vk_physicaldevice.cpp.o
 
-src/vk_program.i: src/vk_program.cpp.i
-.PHONY : src/vk_program.i
+src/vk_physicaldevice.i: src/vk_physicaldevice.cpp.i
+.PHONY : src/vk_physicaldevice.i
 
 # target to preprocess a source file
-src/vk_program.cpp.i:
-	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_program.cpp.i
-.PHONY : src/vk_program.cpp.i
+src/vk_physicaldevice.cpp.i:
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_physicaldevice.cpp.i
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_physicaldevice.cpp.i
+.PHONY : src/vk_physicaldevice.cpp.i
 
-src/vk_program.s: src/vk_program.cpp.s
-.PHONY : src/vk_program.s
+src/vk_physicaldevice.s: src/vk_physicaldevice.cpp.s
+.PHONY : src/vk_physicaldevice.s
 
 # target to generate assembly for a file
-src/vk_program.cpp.s:
-	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_program.cpp.s
-.PHONY : src/vk_program.cpp.s
+src/vk_physicaldevice.cpp.s:
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_physicaldevice.cpp.s
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_physicaldevice.cpp.s
+.PHONY : src/vk_physicaldevice.cpp.s
+
+src/vk_pipeline.o: src/vk_pipeline.cpp.o
+.PHONY : src/vk_pipeline.o
+
+# target to build an object file
+src/vk_pipeline.cpp.o:
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_pipeline.cpp.o
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_pipeline.cpp.o
+.PHONY : src/vk_pipeline.cpp.o
+
+src/vk_pipeline.i: src/vk_pipeline.cpp.i
+.PHONY : src/vk_pipeline.i
+
+# target to preprocess a source file
+src/vk_pipeline.cpp.i:
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_pipeline.cpp.i
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_pipeline.cpp.i
+.PHONY : src/vk_pipeline.cpp.i
+
+src/vk_pipeline.s: src/vk_pipeline.cpp.s
+.PHONY : src/vk_pipeline.s
+
+# target to generate assembly for a file
+src/vk_pipeline.cpp.s:
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_pipeline.cpp.s
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_pipeline.cpp.s
+.PHONY : src/vk_pipeline.cpp.s
 
 src/vk_queue.o: src/vk_queue.cpp.o
 .PHONY : src/vk_queue.o
@@ -373,6 +465,7 @@ src/vk_queue.o: src/vk_queue.cpp.o
 # target to build an object file
 src/vk_queue.cpp.o:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_queue.cpp.o
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_queue.cpp.o
 .PHONY : src/vk_queue.cpp.o
 
 src/vk_queue.i: src/vk_queue.cpp.i
@@ -381,6 +474,7 @@ src/vk_queue.i: src/vk_queue.cpp.i
 # target to preprocess a source file
 src/vk_queue.cpp.i:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_queue.cpp.i
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_queue.cpp.i
 .PHONY : src/vk_queue.cpp.i
 
 src/vk_queue.s: src/vk_queue.cpp.s
@@ -389,6 +483,7 @@ src/vk_queue.s: src/vk_queue.cpp.s
 # target to generate assembly for a file
 src/vk_queue.cpp.s:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_queue.cpp.s
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_queue.cpp.s
 .PHONY : src/vk_queue.cpp.s
 
 src/vk_queue_family.o: src/vk_queue_family.cpp.o
@@ -397,6 +492,7 @@ src/vk_queue_family.o: src/vk_queue_family.cpp.o
 # target to build an object file
 src/vk_queue_family.cpp.o:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_queue_family.cpp.o
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_queue_family.cpp.o
 .PHONY : src/vk_queue_family.cpp.o
 
 src/vk_queue_family.i: src/vk_queue_family.cpp.i
@@ -405,6 +501,7 @@ src/vk_queue_family.i: src/vk_queue_family.cpp.i
 # target to preprocess a source file
 src/vk_queue_family.cpp.i:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_queue_family.cpp.i
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_queue_family.cpp.i
 .PHONY : src/vk_queue_family.cpp.i
 
 src/vk_queue_family.s: src/vk_queue_family.cpp.s
@@ -413,6 +510,7 @@ src/vk_queue_family.s: src/vk_queue_family.cpp.s
 # target to generate assembly for a file
 src/vk_queue_family.cpp.s:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_queue_family.cpp.s
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_queue_family.cpp.s
 .PHONY : src/vk_queue_family.cpp.s
 
 src/vk_shader.o: src/vk_shader.cpp.o
@@ -421,6 +519,7 @@ src/vk_shader.o: src/vk_shader.cpp.o
 # target to build an object file
 src/vk_shader.cpp.o:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_shader.cpp.o
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_shader.cpp.o
 .PHONY : src/vk_shader.cpp.o
 
 src/vk_shader.i: src/vk_shader.cpp.i
@@ -429,6 +528,7 @@ src/vk_shader.i: src/vk_shader.cpp.i
 # target to preprocess a source file
 src/vk_shader.cpp.i:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_shader.cpp.i
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_shader.cpp.i
 .PHONY : src/vk_shader.cpp.i
 
 src/vk_shader.s: src/vk_shader.cpp.s
@@ -437,6 +537,7 @@ src/vk_shader.s: src/vk_shader.cpp.s
 # target to generate assembly for a file
 src/vk_shader.cpp.s:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_shader.cpp.s
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_shader.cpp.s
 .PHONY : src/vk_shader.cpp.s
 
 src/vk_swapchain.o: src/vk_swapchain.cpp.o
@@ -445,6 +546,7 @@ src/vk_swapchain.o: src/vk_swapchain.cpp.o
 # target to build an object file
 src/vk_swapchain.cpp.o:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_swapchain.cpp.o
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_swapchain.cpp.o
 .PHONY : src/vk_swapchain.cpp.o
 
 src/vk_swapchain.i: src/vk_swapchain.cpp.i
@@ -453,6 +555,7 @@ src/vk_swapchain.i: src/vk_swapchain.cpp.i
 # target to preprocess a source file
 src/vk_swapchain.cpp.i:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_swapchain.cpp.i
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_swapchain.cpp.i
 .PHONY : src/vk_swapchain.cpp.i
 
 src/vk_swapchain.s: src/vk_swapchain.cpp.s
@@ -461,6 +564,7 @@ src/vk_swapchain.s: src/vk_swapchain.cpp.s
 # target to generate assembly for a file
 src/vk_swapchain.cpp.s:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_swapchain.cpp.s
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_swapchain.cpp.s
 .PHONY : src/vk_swapchain.cpp.s
 
 src/vk_utils.o: src/vk_utils.cpp.o
@@ -469,6 +573,7 @@ src/vk_utils.o: src/vk_utils.cpp.o
 # target to build an object file
 src/vk_utils.cpp.o:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_utils.cpp.o
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_utils.cpp.o
 .PHONY : src/vk_utils.cpp.o
 
 src/vk_utils.i: src/vk_utils.cpp.i
@@ -477,6 +582,7 @@ src/vk_utils.i: src/vk_utils.cpp.i
 # target to preprocess a source file
 src/vk_utils.cpp.i:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_utils.cpp.i
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_utils.cpp.i
 .PHONY : src/vk_utils.cpp.i
 
 src/vk_utils.s: src/vk_utils.cpp.s
@@ -485,7 +591,35 @@ src/vk_utils.s: src/vk_utils.cpp.s
 # target to generate assembly for a file
 src/vk_utils.cpp.s:
 	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_utils.cpp.s
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_utils.cpp.s
 .PHONY : src/vk_utils.cpp.s
+
+src/vk_validations.o: src/vk_validations.cpp.o
+.PHONY : src/vk_validations.o
+
+# target to build an object file
+src/vk_validations.cpp.o:
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_validations.cpp.o
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_validations.cpp.o
+.PHONY : src/vk_validations.cpp.o
+
+src/vk_validations.i: src/vk_validations.cpp.i
+.PHONY : src/vk_validations.i
+
+# target to preprocess a source file
+src/vk_validations.cpp.i:
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_validations.cpp.i
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_validations.cpp.i
+.PHONY : src/vk_validations.cpp.i
+
+src/vk_validations.s: src/vk_validations.cpp.s
+.PHONY : src/vk_validations.s
+
+# target to generate assembly for a file
+src/vk_validations.cpp.s:
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngine.dir/build.make externals/VKEngine/CMakeFiles/VKEngine.dir/src/vk_validations.cpp.s
+	cd /Users/cenovis/workspace/Graphics/Vulkan-MarchingCube/build && $(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/src/vk_validations.cpp.s
+.PHONY : src/vk_validations.cpp.s
 
 # Help Target
 help:
@@ -500,9 +634,7 @@ help:
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... VKEngine"
-	@echo "... src/vk_application.o"
-	@echo "... src/vk_application.i"
-	@echo "... src/vk_application.s"
+	@echo "... VKEngineStatic"
 	@echo "... src/vk_buffer.o"
 	@echo "... src/vk_buffer.i"
 	@echo "... src/vk_buffer.s"
@@ -512,18 +644,27 @@ help:
 	@echo "... src/vk_context.o"
 	@echo "... src/vk_context.i"
 	@echo "... src/vk_context.s"
+	@echo "... src/vk_descriptors.o"
+	@echo "... src/vk_descriptors.i"
+	@echo "... src/vk_descriptors.s"
 	@echo "... src/vk_engine.o"
 	@echo "... src/vk_engine.i"
 	@echo "... src/vk_engine.s"
+	@echo "... src/vk_functions.o"
+	@echo "... src/vk_functions.i"
+	@echo "... src/vk_functions.s"
 	@echo "... src/vk_image.o"
 	@echo "... src/vk_image.i"
 	@echo "... src/vk_image.s"
 	@echo "... src/vk_infos.o"
 	@echo "... src/vk_infos.i"
 	@echo "... src/vk_infos.s"
-	@echo "... src/vk_program.o"
-	@echo "... src/vk_program.i"
-	@echo "... src/vk_program.s"
+	@echo "... src/vk_physicaldevice.o"
+	@echo "... src/vk_physicaldevice.i"
+	@echo "... src/vk_physicaldevice.s"
+	@echo "... src/vk_pipeline.o"
+	@echo "... src/vk_pipeline.i"
+	@echo "... src/vk_pipeline.s"
 	@echo "... src/vk_queue.o"
 	@echo "... src/vk_queue.i"
 	@echo "... src/vk_queue.s"
@@ -539,6 +680,9 @@ help:
 	@echo "... src/vk_utils.o"
 	@echo "... src/vk_utils.i"
 	@echo "... src/vk_utils.s"
+	@echo "... src/vk_validations.o"
+	@echo "... src/vk_validations.i"
+	@echo "... src/vk_validations.s"
 .PHONY : help
 
 

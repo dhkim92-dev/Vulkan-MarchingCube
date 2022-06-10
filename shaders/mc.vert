@@ -12,6 +12,5 @@ layout(location = 0) out vec3 outColor;
 //layout(location = 1) out vec3 outNormal;
 void main(){
 	gl_Position = matrices.proj * matrices.view * matrices.model * vec4(inPos, 1.0);
-	//outColor =  vec3(1.0f, 1.0f, 1.0f);
 	outColor = inNormal;
 }

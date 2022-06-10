@@ -3,66 +3,11 @@
 
 #include "scan.h"
 
-namespace VKEngine{
+using namespace VKEngine;
 
 Scan::Scan(){
 };
 
-Scan::~Scan(){
-	destroy();
-}
-
-
-void Scan::destroy(){
-    LOG("Scan::destroy()\n");
-	VkDevice device = ctx->getDevice();
-	if(cache){
-        // LOG("cache destroy!\n");
-		vkDestroyPipelineCache(device, cache, nullptr);
-        cache = VK_NULL_HANDLE;
-	}
-
-	if(scan4_sets!=nullptr){
-		vkFreeDescriptorSets(device, desc_pool, nr_desc_alloc, scan4_sets);
-		delete [] scan4_sets;
-		scan4_sets = nullptr;
-	}
-	if(uniform_update_sets != nullptr){
-		vkFreeDescriptorSets(device, desc_pool, nr_desc_alloc, uniform_update_sets);
-		delete [] uniform_update_sets;
-		uniform_update_sets = nullptr;
-	}
-	if(scan_ed_set){
-		vkFreeDescriptorSets(device, desc_pool, 1, &scan_ed_set);
-		scan_ed_set = VK_NULL_HANDLE;
-	}
-	program.scan4.destroy();
-	program.scan_ed.destroy();
-	program.uniform_update.destroy();
-
-	if(event){
-		ctx->destroyEvent(&event);
-	}
-
-	if(desc_pool != VK_NULL_HANDLE){
-        vkDestroyDescriptorPool(device, desc_pool, nullptr);
-        desc_pool = VK_NULL_HANDLE;
-    }
-    
-	for(uint32_t i = 0 ; i < d_grps.size() ; i++){
-		if(d_grps[i])
-			d_grps[i]->destroy();
-	}
-    d_grps.clear();
-	for(uint32_t i = 0 ; i < nr_desc_alloc ; i++){
-		d_limit[i].destroy();
-	}
-	d_inputs.clear();
-	d_outputs.clear();
-	nr_desc_alloc = 0;
-
-    LOG("Scan::destory() end\n");
-}
 
 void Scan::create(Context *context, CommandQueue* command_queue){
 	ctx = context;
@@ -72,11 +17,14 @@ void Scan::create(Context *context, CommandQueue* command_queue){
 void Scan::init(uint32_t sz_mem){
 	nr_element = sz_mem;
 	setupBuffers();
+	setupBuilders();
 	setupDescriptorPool();
-	setupKernels();
+	setupDescriptors();
+	setupPipelineLayouts();
 }
 
 void Scan::setupBuffers(){
+    LOG("Scan::setupBuffers()\n");
 	uint32_t sm = 64;
 	uint32_t size = nr_element;
 
@@ -100,97 +48,109 @@ void Scan::setupBuffers(){
 	d_limit = new Buffer[d_grps.size() - 1];
 	for(uint32_t i = 0 ; i < d_grps.size() - 1; i++)
 		d_limit[i].create(ctx, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 4, &h_limits[i]);
+    LOG("Scan::setupBuffers() end\n");
+}
+
+
+void Scan::setupBuilders()
+{
+    LOG("Scan::setupBuilders()\n");
+	builders.descriptor = new DescriptorSetBuilder(ctx);
+	builders.scan4 = new ComputePipelineBuilder(ctx);
+	builders.scan_ed = new ComputePipelineBuilder(ctx);
+	builders.uniform_update = new ComputePipelineBuilder(ctx);
+    LOG("Scan::setupBuilders() end\n");
 }
 
 void Scan::setupDescriptorPool(){
-    LOG("Scan::setup Descriptor Pool\n");
-	VkDevice device = ctx->getDevice();
-	VkDescriptorPoolSize pool_size[2] = {
-		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 18),
-		infos::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 8),
-	};
-	VkDescriptorPoolCreateInfo desc_pool_CI = infos::descriptorPoolCreateInfo(2, pool_size,  12);
-	desc_pool_CI.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-	VK_CHECK_RESULT(vkCreateDescriptorPool(device, &desc_pool_CI, nullptr, &desc_pool));
-
-    LOG("Scan::setup Descriptor Pool Done\n");
+    LOG("Scan::setupDescriptorPool()\n");
+	vector<VkDescriptorPoolSize> pool_size(2);
+	pool_size[0] = DescriptorSetBuilder::createDescriptorPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 18);
+	pool_size[1] = DescriptorSetBuilder::createDescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 8);
+	VK_CHECK_RESULT(builders.descriptor->setDescriptorPool(pool_size, 10, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT));
+    LOG("Scan::setupDescriptorPool() end\n");
 }
 
-void Scan::setupKernels(){
-	program.scan4.create(ctx, "shaders/scan.comp.spv");
-	program.scan_ed.create(ctx, "shaders/scan_ed.comp.spv");
-	program.uniform_update.create(ctx, "shaders/uniform_update.comp.spv");
+void Scan::setupDescriptors(){
+    LOG("Scan::setupDescriptorSetLayouts()\n");
+	for(count = 0 ; d_grps[count] != nullptr ; count++){}
 
-	VkDescriptorSetLayoutBinding binding;
-	program.scan4.setupDescriptorSetLayout({
-		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 0),
-		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1),
-		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 2),
-		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 3)
-	});
+	progs.scan4.sets = new VkDescriptorSet[count];
+	progs.uniform_update.sets = new VkDescriptorSet[count];
 
-	program.scan_ed.setupDescriptorSetLayout({
-		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 0),
-		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1)
-	});
+	vector<VkDescriptorSetLayoutBinding> bindings(4);
+	bindings[0] = DescriptorSetLayoutBuilder::bind(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,1, VK_SHADER_STAGE_COMPUTE_BIT);
+	bindings[1] = DescriptorSetLayoutBuilder::bind(1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,1, VK_SHADER_STAGE_COMPUTE_BIT);
+	bindings[2] = DescriptorSetLayoutBuilder::bind(2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,1, VK_SHADER_STAGE_COMPUTE_BIT);
+	bindings[3] = DescriptorSetLayoutBuilder::bind(3, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1, VK_SHADER_STAGE_COMPUTE_BIT);
+	VK_CHECK_RESULT(DescriptorSetLayoutBuilder::build(ctx, &progs.scan4.d_layout, bindings));
+	for(int i = 0 ; i < count ; i++)
+		VK_CHECK_RESULT(builders.descriptor->build(&progs.scan4.sets[i], &progs.scan4.d_layout, 1));
+	bindings.resize(2);
+	bindings[0] = DescriptorSetLayoutBuilder::bind(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,1, VK_SHADER_STAGE_COMPUTE_BIT);
+	bindings[1] = DescriptorSetLayoutBuilder::bind(1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,1, VK_SHADER_STAGE_COMPUTE_BIT);
+	VK_CHECK_RESULT(DescriptorSetLayoutBuilder::build(ctx, &progs.scan_ed.d_layout, bindings));
+	VK_CHECK_RESULT(builders.descriptor->build(&progs.scan_ed.set, &progs.scan_ed.d_layout, 1));
+	bindings.resize(2);
+	bindings[0] = DescriptorSetLayoutBuilder::bind(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,1, VK_SHADER_STAGE_COMPUTE_BIT);
+	bindings[1] = DescriptorSetLayoutBuilder::bind(1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,1, VK_SHADER_STAGE_COMPUTE_BIT);
+	VK_CHECK_RESULT(DescriptorSetLayoutBuilder::build(ctx, &progs.uniform_update.d_layout, bindings));
+	for(int i = 0 ; i < count ; i++)
+		VK_CHECK_RESULT(builders.descriptor->build(&progs.uniform_update.sets[i], &progs.uniform_update.d_layout, 1));
+    LOG("Scan::setupDescriptorSetLayouts() end\n");
+}
+    
+void Scan::setupPipelineLayouts()
+{
+    LOG("Scan::setupPipelineLayout()\n");
+	VK_CHECK_RESULT(PipelineLayoutBuilder::build(ctx, &progs.scan4.p_layout, &progs.scan4.d_layout, 1, nullptr, 0));
+	VK_CHECK_RESULT(PipelineLayoutBuilder::build(ctx, &progs.scan_ed.p_layout, &progs.scan_ed.d_layout, 1, nullptr, 0));
+	VK_CHECK_RESULT(PipelineLayoutBuilder::build(ctx, &progs.uniform_update.p_layout, &progs.uniform_update.d_layout, 1, nullptr, 0));
+    LOG("Scan::setupPipelineLayout() end\n");
+}
 
-	program.uniform_update.setupDescriptorSetLayout({
-		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 0),
-		infos::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT, 1)
-	});
-    // LOG("descriptor pool : %p \n", desc_pool);
-	uint32_t nr_alloc = 0;
-	for(uint32_t i = 0 ; i < d_grps.size() ; i++){
-		if(d_grps[i] != nullptr){
-			nr_alloc++;
-		}
-	}
-	scan4_sets = new VkDescriptorSet[nr_alloc];
-	uniform_update_sets = new VkDescriptorSet[nr_alloc];
-	program.scan_ed.allocateDescriptorSet(desc_pool, &scan_ed_set, 1 );
-	for(uint32_t i = 0 ; i < nr_alloc ; i++)
-		program.scan4.allocateDescriptorSet(desc_pool, &scan4_sets[i], 1);
+void Scan::setupPipelineCaches()
+{
+    LOG("Scan::setupPipelineCache()\n");
+	VK_CHECK_RESULT(PipelineCacheBuilder::build(ctx, &cache));
+    LOG("Scan::setupPipelineCache() end\n");
+}
 
-	for(uint32_t i = 0 ; i < nr_alloc ; i++)
-		program.uniform_update.allocateDescriptorSet(desc_pool, &uniform_update_sets[i], 1);
-	nr_desc_alloc = nr_alloc;
+void Scan::setupPipelines(){
+    LOG("Scan::setupPipelines\n");
+	uint32_t data[2] = {2*h_limits.back(), h_limits.back()};
+	VkSpecializationMapEntry entries[2];
+	entries[0].constantID = 1;
+	entries[0].offset = 0;
+	entries[0].size = sizeof(uint32_t);
+	entries[1].constantID = 2;
+	entries[1].offset = sizeof(uint32_t);
+	entries[1].size = sizeof(uint32_t);
+	VkSpecializationInfo sinfo = {};
+	sinfo.mapEntryCount = 2;
+	sinfo.pMapEntries = entries;
+	sinfo.dataSize = sizeof(uint32_t)*2;
+	sinfo.pData = data;
 
+	builders.scan4->setComputeShader("shaders/scan.comp.spv");
+	builders.scan_ed->setComputeShader("shaders/scan_ed.comp.spv", &sinfo);
+	builders.uniform_update->setComputeShader("shaders/uniform_update.comp.spv");
+	VK_CHECK_RESULT(builders.scan4->build(&progs.scan4.pipeline, progs.scan4.p_layout, cache));
+	VK_CHECK_RESULT(builders.scan_ed->build(&progs.scan_ed.pipeline, progs.scan_ed.p_layout, cache));
+	VK_CHECK_RESULT(builders.uniform_update->build(&progs.uniform_update.pipeline, progs.uniform_update.p_layout, cache));
+    LOG("Scan::setupPipelines end\n");
 }
 
 void Scan::build(){
 	LOG("Scan::build()\n");
-	VkDevice device = ctx->getDevice();
-	uint32_t data[2] = {2*h_limits.back(), h_limits.back()};
-    // LOG("scan_ed local_mem_size : %d\n", 4 * data[0]);
-    // LOG("scan_ed local_dispatch_size : %d\n", data[1]);
-
-	VkSpecializationMapEntry scan_ed_map[2];
-	scan_ed_map[0].constantID = 1;
-	scan_ed_map[0].offset = 0;
-	scan_ed_map[0].size = sizeof(uint32_t);
-	scan_ed_map[1].constantID = 2;
-	scan_ed_map[1].offset = sizeof(uint32_t);
-	scan_ed_map[1].size = sizeof(uint32_t);
-	VkSpecializationInfo scan_ed_SI = {};
-	scan_ed_SI.mapEntryCount = 2;
-	scan_ed_SI.pMapEntries = scan_ed_map;
-	scan_ed_SI.dataSize = sizeof(uint32_t)*2;
-	scan_ed_SI.pData = data;
-
-	if(!cache){
-		VkPipelineCacheCreateInfo info = {};
-		info.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-		VK_CHECK_RESULT(vkCreatePipelineCache(device, &info, nullptr, &cache));
-	}
-	program.scan4.build(cache, nullptr);
-	program.scan_ed.build(cache, &scan_ed_SI);
-	program.uniform_update.build(cache, nullptr);
+	setupPipelines();
 	LOG("Scan::build() done\n");
 }
 
 void Scan::setupCommandBuffer(Buffer *d_input, Buffer *d_output, VkEvent wait_event){
 	LOG("Scan::setupCommandBuffer()\n");
 	VK_CHECK_RESULT(ctx->createEvent(&event));
+	LOG("Scan::event created\n");
 	d_inputs.push_back(d_input);
 	d_outputs.push_back(d_output);
 	for(uint32_t i = 0 ; i < d_grps.size(); i++){
@@ -199,9 +159,11 @@ void Scan::setupCommandBuffer(Buffer *d_input, Buffer *d_output, VkEvent wait_ev
 			d_outputs.push_back(d_grps[i]);
 		}
 	}
-	command = queue->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, 0, true);
 
+	VK_CHECK_RESULT( queue->createCommandBuffer(&command, 1, VK_COMMAND_BUFFER_LEVEL_PRIMARY) );
+	VK_CHECK_RESULT( queue->beginCommandBuffer(command, VK_COMMAND_BUFFER_LEVEL_PRIMARY));
 
+	LOG("Scan::setupCommandBuffer begin()\n");
 	VkBufferMemoryBarrier input_barrier = d_inputs[0]->barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 	queue->waitEvents(command, &wait_event, 1, 
 				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
@@ -215,67 +177,57 @@ void Scan::setupCommandBuffer(Buffer *d_input, Buffer *d_output, VkEvent wait_ev
 		}
 	}
 
+	Program &scan4 = progs.scan4;
+	Program &scan_ed = progs.scan_ed;
+	Program &uniform_update = progs.uniform_update;
 
 	for(uint32_t i = 0 ; i < d_grps.size() ; i++){
 		if(d_grps[i] != nullptr){
-			// LOG("scan4 iter %d\n",i);
-			// LOG("h_limits[%d] : %d\n", i, h_limits[i]);
-			//d_limit[i].copyFrom(&h_limits[i], 4);
-			program.scan4.setKernelArgs(scan4_sets[i], {
-				{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_inputs[i]->descriptor, nullptr},
-				{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_outputs[i]->descriptor, nullptr},
-				{2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_grps[i]->descriptor, nullptr},
-				{3, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &d_limit[i].descriptor, nullptr}
-			});
-			queue->bindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, program.scan4.pipeline);
-			queue->bindDescriptorSets(command, VK_PIPELINE_BIND_POINT_COMPUTE, program.scan4.layouts.pipeline,
-				0, &scan4_sets[i], 1, 0, nullptr);
+			VkWriteDescriptorSet writes[4] ={
+				DescriptorWriter::writeBuffer(scan4.sets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, d_inputs[i]),
+				DescriptorWriter::writeBuffer(scan4.sets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, d_outputs[i]),
+				DescriptorWriter::writeBuffer(scan4.sets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2, d_grps[i]),
+				DescriptorWriter::writeBuffer(scan4.sets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3, &d_limit[i])
+			};
+			DescriptorWriter::update(ctx, writes, 4);
+			queue->bindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, scan4.pipeline);
+			queue->bindDescriptorSets(command, VK_PIPELINE_BIND_POINT_COMPUTE, scan4.p_layout, 0, &scan4.sets[i], 1);
 
 			if(i == 0){
-				//}else{
 				VkBufferMemoryBarrier input_barrier = d_inputs[i]->barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-				queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,
-				nullptr, 0,&input_barrier,1,nullptr, 0);
+				queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,nullptr, 0,&input_barrier,1,nullptr, 0);
 			}
 			queue->dispatch(command, (g_sizes[i] + 63 )/ 64, 1, 1);
 			VkBufferMemoryBarrier output_barrier = d_outputs[i]->barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-			queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,
-			nullptr, 0, &output_barrier, 1, nullptr, 0);
+			queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0, nullptr, 0, &output_barrier, 1, nullptr, 0);
 		}else{
-			// LOG("scan_ed %d\n",i);
-			program.scan_ed.setKernelArgs(scan_ed_set, {
-				{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_inputs[i]->descriptor, nullptr},
-				{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_outputs[i]->descriptor, nullptr},
-			});
-			// LOG("scaned set Kernel Args done\n");
-			queue->bindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, program.scan_ed.pipeline);
-			queue->bindDescriptorSets(command, VK_PIPELINE_BIND_POINT_COMPUTE, program.scan_ed.layouts.pipeline, 0,
-									&scan_ed_set, 1, 0, nullptr);
-			// LOG("scaned bind Kernel done\n");
+			VkWriteDescriptorSet writes[2] ={
+				DescriptorWriter::writeBuffer(scan_ed.set, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, d_inputs[i]),
+				DescriptorWriter::writeBuffer(scan_ed.set, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, d_outputs[i])
+			};
+			DescriptorWriter::update(ctx, writes, 2);
+			queue->bindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, scan_ed.pipeline);
+			queue->bindDescriptorSets(command, VK_PIPELINE_BIND_POINT_COMPUTE, scan_ed.p_layout, 0, &scan_ed.set, 1);
+			
 			VkBufferMemoryBarrier input_barrier = d_inputs[i]->barrier(VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT);
-			queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,
-				nullptr, 0, &input_barrier, 1, nullptr, 0);
-			// LOG("scaned barrier create\n");
+			queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, nullptr, 0, &input_barrier, 1, nullptr, 0);
 			queue->dispatch(command, g_sizes[i], 1, 1);
-			// LOG("scaned dispatch\n");
 			VkBufferMemoryBarrier output_barrier = d_outputs[i]->barrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-			queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
-			 			nullptr, 0, &output_barrier, 1, nullptr, 0);
+			queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, nullptr, 0, &output_barrier, 1, nullptr, 0);
 			// LOG("Output bind dispatch\n");
 		}
 	}
-
 	for(int i = static_cast<uint32_t>(d_grps.size()) - 1 ; i >= 0 ; i--){
 		if(d_grps[i] != nullptr){
 			// LOG("uniform update %d\n",i);
-			program.uniform_update.setKernelArgs(uniform_update_sets[i], {
-				{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_outputs[i]->descriptor, nullptr},
-				{1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &d_grps[i]->descriptor, nullptr}
-			});
+			VkWriteDescriptorSet writes[2] = {
+				DescriptorWriter::writeBuffer(uniform_update.sets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, d_outputs[i]),
+				DescriptorWriter::writeBuffer(uniform_update.sets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, d_grps[i])
+			};
+			DescriptorWriter::update(ctx, writes, 2);
 
-			queue->bindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, program.uniform_update.pipeline);
-			queue->bindDescriptorSets(command, VK_PIPELINE_BIND_POINT_COMPUTE, program.uniform_update.layouts.pipeline,
-									 0, &uniform_update_sets[i], 1, 0, nullptr);
+			queue->bindPipeline(command, VK_PIPELINE_BIND_POINT_COMPUTE, uniform_update.pipeline);
+			queue->bindDescriptorSets(command, VK_PIPELINE_BIND_POINT_COMPUTE, uniform_update.p_layout, 0, &uniform_update.sets[i], 1, 0, nullptr);
 			// LOG("uniform update bindDescriptorSets\n");
 			VkBufferMemoryBarrier input_barrier = d_grps[i]->barrier(VK_ACCESS_SHADER_WRITE_BIT,VK_ACCESS_SHADER_READ_BIT);
 			// LOG("uniform update barrier\n");
@@ -291,8 +243,79 @@ void Scan::setupCommandBuffer(Buffer *d_input, Buffer *d_output, VkEvent wait_ev
 	queue->barrier(command, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, nullptr, 0, &output_barrier, 1 , nullptr, 0);
 	queue->setEvent(command, event, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 	VK_CHECK_RESULT(queue->endCommandBuffer(command));
-	LOG("Scan::setupCommandBuffer() done\n");
+	LOG("Scan::setupCommandBuffer() end\n");
 }
 
+Scan::~Scan(){
+	destroy();
 }
+
+void Scan::destroy()
+{
+    LOG("Scan::destroy()\n");
+	ctx->destroyEvent(&event);
+	destroyCommand();
+	destroyPipeline();
+	destroyDescriptor();
+	destroyBuffers();
+    LOG("Scan::destory() end\n");
+
+}
+
+void Scan::destroyCommand(){
+	ctx->destroyEvent(&event);
+	queue->free(command);
+	command = VK_NULL_HANDLE;
+}
+
+void Scan::destroyDescriptor()
+{
+	LOG("Scan::destroyDescriptor()\n");
+	builders.descriptor->free(progs.scan4.sets, count);
+	builders.descriptor->free(&progs.scan_ed.set, 1);
+	builders.descriptor->free(progs.uniform_update.sets, count);
+	delete [] progs.scan4.sets;
+	delete [] progs.uniform_update.sets;
+	// layout destroy
+	DescriptorSetLayoutBuilder::destroy(ctx, &progs.scan4.d_layout);
+	DescriptorSetLayoutBuilder::destroy(ctx, &progs.scan_ed.d_layout);
+	DescriptorSetLayoutBuilder::destroy(ctx, &progs.uniform_update.d_layout);
+	delete builders.descriptor;
+	LOG("Scan::destroyDescriptor() end\n");
+}
+
+void Scan::destroyPipeline()
+{
+	// pipeline destroy
+	LOG("Scan::destroyPipeline()\n");
+	ComputePipelineBuilder::destroy(ctx, &progs.scan4.pipeline);
+	ComputePipelineBuilder::destroy(ctx, &progs.uniform_update.pipeline);
+	ComputePipelineBuilder::destroy(ctx, &progs.scan_ed.pipeline);
+
+	PipelineCacheBuilder::destroy(ctx, &cache);
+
+	PipelineLayoutBuilder::destroy(ctx, &progs.scan4.p_layout);
+	PipelineLayoutBuilder::destroy(ctx, &progs.scan_ed.p_layout);
+	PipelineLayoutBuilder::destroy(ctx, &progs.uniform_update.p_layout);
+
+	delete builders.scan4;
+	delete builders.scan_ed;
+	delete builders.uniform_update;
+	LOG("Scan::destroyPipeline() end\n");
+}
+
+void Scan::destroyBuffers()
+{
+	LOG("Scan::destroyBufers()\n");
+	for(uint32_t i = 0 ; i < d_grps.size() ; i++){
+		if(d_grps[i] != nullptr)
+			d_grps[i]->destroy();
+	}
+	d_grps.clear();	
+
+	delete [] d_limit;
+	LOG("Scan::destroyBufers() end\n");
+}
+
+
 #endif 

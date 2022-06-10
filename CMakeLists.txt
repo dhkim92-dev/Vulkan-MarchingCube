@@ -30,8 +30,11 @@ SET(PROJECT_SOURCE
     src/main.cpp
     src/marchingcube.cpp
     src/scan.cpp
+    src/vk_application.cpp
+    include/vk_application.h
     include/marchingcube.h
     include/scan.h
+    include/tools.h
 )
 
 add_executable(Vulkan_Marchingcube ${PROJECT_SOURCE})

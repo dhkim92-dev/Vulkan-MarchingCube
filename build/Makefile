@@ -188,6 +188,19 @@ VKEngine/fast:
 .PHONY : VKEngine/fast
 
 #=============================================================================
+# Target rules for targets named VKEngineStatic
+
+# Build rule for target.
+VKEngineStatic: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 VKEngineStatic
+.PHONY : VKEngineStatic
+
+# fast build rule for target.
+VKEngineStatic/fast:
+	$(MAKE) $(MAKESILENT) -f externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build.make externals/VKEngine/CMakeFiles/VKEngineStatic.dir/build
+.PHONY : VKEngineStatic/fast
+
+#=============================================================================
 # Target rules for targets named uninstall
 
 # Build rule for target.
@@ -272,6 +285,30 @@ src/scan.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Vulkan_Marchingcube.dir/build.make CMakeFiles/Vulkan_Marchingcube.dir/src/scan.cpp.s
 .PHONY : src/scan.cpp.s
 
+src/vk_application.o: src/vk_application.cpp.o
+.PHONY : src/vk_application.o
+
+# target to build an object file
+src/vk_application.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Vulkan_Marchingcube.dir/build.make CMakeFiles/Vulkan_Marchingcube.dir/src/vk_application.cpp.o
+.PHONY : src/vk_application.cpp.o
+
+src/vk_application.i: src/vk_application.cpp.i
+.PHONY : src/vk_application.i
+
+# target to preprocess a source file
+src/vk_application.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Vulkan_Marchingcube.dir/build.make CMakeFiles/Vulkan_Marchingcube.dir/src/vk_application.cpp.i
+.PHONY : src/vk_application.cpp.i
+
+src/vk_application.s: src/vk_application.cpp.s
+.PHONY : src/vk_application.s
+
+# target to generate assembly for a file
+src/vk_application.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Vulkan_Marchingcube.dir/build.make CMakeFiles/Vulkan_Marchingcube.dir/src/vk_application.cpp.s
+.PHONY : src/vk_application.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -286,6 +323,7 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... uninstall"
 	@echo "... VKEngine"
+	@echo "... VKEngineStatic"
 	@echo "... Vulkan_Marchingcube"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
@@ -296,6 +334,9 @@ help:
 	@echo "... src/scan.o"
 	@echo "... src/scan.i"
 	@echo "... src/scan.s"
+	@echo "... src/vk_application.o"
+	@echo "... src/vk_application.i"
+	@echo "... src/vk_application.s"
 .PHONY : help
 
 
