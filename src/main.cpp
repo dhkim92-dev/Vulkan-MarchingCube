@@ -107,7 +107,7 @@ class MarchingCubeRenderer : public Application{
 		vector<const char*> device_extensions, 
 		vector<const char*> validations) : Application(_name, h, w, instance_extensions, device_extensions, validations
 	){
-		this->engine->setDebug(false);
+		this->engine->setDebug(true);
 	}
 	
 	protected:
@@ -138,7 +138,6 @@ class MarchingCubeRenderer : public Application{
 			runCompute(nullptr, 0, &compute.complete, 1);
 		}
 		prepareFrame();
-
 		VkSemaphore waits[2] = {
 			compute.complete,
 			semaphores.present_complete,
@@ -262,7 +261,7 @@ class MarchingCubeRenderer : public Application{
 		std::array<VkClearValue, 2> clear_values{};
 		clear_values[0].color = {0.3f, 0.3f, 0.3f, 1.0f};
 		clear_values[1].depthStencil = {1.0f, 0};
-		draw_command_buffers.resize(swapchain.buffers.size());
+		draw_command_buffers.resize(swapchain->getImageCount());
 		VkRenderPassBeginInfo render_pass_BI = infos::renderPassBeginInfo();
 		render_pass_BI.clearValueCount = static_cast<uint32_t>(clear_values.size());
 		render_pass_BI.pClearValues = clear_values.data();

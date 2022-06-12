@@ -84,7 +84,10 @@ namespace VKEngine{
 	}
 	
 	void Application::initSwapchain(){
-		swapchain.connect(engine, context, surface);
+		swapchain = new Swapchain(context, surface);
+		swapchain->setImageSharingMode(VK_SHARING_MODE_EXCLUSIVE);
+		swapchain->setVsync(true);
+		swapchain->init();
 	}
 
 	void Application::setupCamera(){
@@ -93,9 +96,7 @@ namespace VKEngine{
 	}
 
 	void Application::setupSwapchain(){
-		swapchain.create(&height, &width, false);
-		height = swapchain.detail.capabilities.currentExtent.height;
-		width = swapchain.detail.capabilities.currentExtent.width;
+		swapchain->create(&width, &height);
 	}
 
 	void Application::setupCommandQueue(){
@@ -159,8 +160,8 @@ namespace VKEngine{
 		VkDevice device = context->getDevice();
 		std::array<VkAttachmentDescription, 2> attachments={};
 		//Color first
-		attachments[0].format = swapchain.image_format;
-		LOG("swapchain image format : %d\n", swapchain.image_format);
+		attachments[0].format = swapchain->getFormat().format;
+		// LOG("swapchain image format : %d\n", swapchain.image_format);
 		attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
 		attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -220,9 +221,11 @@ namespace VKEngine{
 
 	void Application::setupFramebuffer(){
 		VkDevice device = context->getDevice();
-		uint32_t nr_framebuffers = static_cast<uint32_t>(swapchain.buffers.size());
+		uint32_t nr_framebuffers = static_cast<uint32_t>(swapchain->getImageCount());
+		LOG("framebuffer count : %d\n", nr_framebuffers);
 		framebuffers.clear();
 		framebuffers.resize(nr_framebuffers);
+
 		std::array<VkImageView, 2> attachments = {};
 		attachments[1] = depth_attachment.view;
 		VkFramebufferCreateInfo framebuffer_CI = {};
@@ -233,7 +236,7 @@ namespace VKEngine{
 		framebuffer_CI.height = height;
 		
 		for(uint32_t i = 0 ; i < nr_framebuffers ; ++i){
-			attachments[0] = swapchain.buffers[i].view;
+			attachments[0] = swapchain->getImageViews()[i];
 			framebuffer_CI.attachmentCount = static_cast<uint32_t>(attachments.size());
 			framebuffer_CI.pAttachments = attachments.data();
 			VK_CHECK_RESULT(vkCreateFramebuffer(device, &framebuffer_CI, nullptr, &framebuffers[i]));
@@ -256,7 +259,7 @@ namespace VKEngine{
 	}
 
 	void Application::prepareFrame(){
-		VkResult result = swapchain.acquiredNextImage(semaphores.present_complete, &current_frame_index);
+		VkResult result = Presenter::acquire(context, swapchain, &current_frame_index, &semaphores.present_complete);
 		if( (result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)){
 			//TODO window resize
 			LOG("Application::preprareFrame result is VK_ERROR_OUT_OF_DATE_KHR or VK_SUBOPTIMAL_KHR\n");
@@ -266,8 +269,9 @@ namespace VKEngine{
 	}
 
 	void Application::submitFrame(){
-		VkQueue queue = graphics_queue->getQueue();
-		VkResult result = swapchain.queuePresent(queue, current_frame_index, semaphores.render_complete);
+		// VkQueue queue = graphics_queue->getQueue();
+		// VkResult result = swapchain.queuePresent(queue, current_frame_index, semaphores.render_complete);
+		VkResult result = Presenter::present(graphics_queue, swapchain, &current_frame_index, &semaphores.render_complete);
 		if(!(result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR)){
 			LOG("Application::submitFrame result is VK_SUCCESS or VK_SUBOPTIMAL_KHR\n");
 			//TODO window resize
@@ -275,7 +279,7 @@ namespace VKEngine{
 		}else{
 			VK_CHECK_RESULT(result);
 		}
-		VK_CHECK_RESULT(vkQueueWaitIdle(queue));
+		VK_CHECK_RESULT(graphics_queue->waitIdle());
 	}
 
 	void Application::render(){
@@ -287,12 +291,12 @@ namespace VKEngine{
 		graphics_queue->waitFences(&draw_fence, 1, true, UINT64_MAX);
 		submitFrame();
 		current_frame_index+=1;
-		current_frame_index%=swapchain.buffers.size();
+		current_frame_index%=swapchain->getImageCount();
 	}
 
 	void Application::destroyFramebuffers(){
 		VkDevice device = context->getDevice();
-		for(uint32_t i = 0 ; i < swapchain.buffers.size(); ++i){
+		for(uint32_t i = 0 ; i < swapchain->getImageCount() ; ++i){
 			vkDestroyFramebuffer(device, framebuffers[i], nullptr);
 		}
 		framebuffers.clear();
@@ -300,14 +304,13 @@ namespace VKEngine{
 		vkFreeMemory(device, depth_attachment.memory, nullptr);
 		vkDestroyImage(device, depth_attachment.image, nullptr);
 		vkDestroyRenderPass(device, render_pass, nullptr);
-		swapchain.destroy();
 	}
 	
 	void Application::destroy(){
 		VkInstance instance = context->getPhysicalDevice()->getEngine()->getInstance();
 		PipelineCacheBuilder::destroy(context, &cache);
 		context->destroyFence(&draw_fence);
-		swapchain.destroy();
+		delete swapchain;
 		if(surface != VK_NULL_HANDLE)
 			vkDestroySurfaceKHR( instance, surface, nullptr);
 		context->destroySemaphore(&semaphores.present_complete);

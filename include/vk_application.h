@@ -24,7 +24,7 @@ namespace VKEngine{
 		VkSurfaceKHR surface;
 		
 		CommandQueue *graphics_queue, *compute_queue;
-		SwapChain swapchain;
+		Swapchain *swapchain;
 		
 		VkPipelineCache cache;
 		VkGraphicsPipelineCreateInfo graphics_pipeline_CI_preset;
