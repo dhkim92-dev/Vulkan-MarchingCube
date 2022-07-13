@@ -259,7 +259,7 @@ namespace VKEngine{
 	}
 
 	void Application::prepareFrame(){
-		VkResult result = Presenter::acquire(context, swapchain, &current_frame_index, &semaphores.present_complete);
+		VkResult result = swapchain->acquire(&current_frame_index, semaphores.present_complete);
 		if( (result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)){
 			//TODO window resize
 			LOG("Application::preprareFrame result is VK_ERROR_OUT_OF_DATE_KHR or VK_SUBOPTIMAL_KHR\n");
@@ -271,7 +271,7 @@ namespace VKEngine{
 	void Application::submitFrame(){
 		// VkQueue queue = graphics_queue->getQueue();
 		// VkResult result = swapchain.queuePresent(queue, current_frame_index, semaphores.render_complete);
-		VkResult result = Presenter::present(graphics_queue, swapchain, &current_frame_index, &semaphores.render_complete);
+		VkResult result = swapchain->present(graphics_queue, &current_frame_index, &semaphores.render_complete);
 		if(!(result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR)){
 			LOG("Application::submitFrame result is VK_SUCCESS or VK_SUBOPTIMAL_KHR\n");
 			//TODO window resize

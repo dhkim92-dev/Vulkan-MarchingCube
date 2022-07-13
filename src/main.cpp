@@ -334,6 +334,10 @@ int main(int argc, char* argv[]){
  	vector<const char *> validations={"VK_LAYER_KHRONOS_validation"};
 	vector<const char *> device_extensions= {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 	string _name = "Vulkan-MarchingCube";
+
+    for(auto s : instance_extensions) {
+        cout << "instance extension name : " << s << endl;
+    }
 	try {
 		MarchingCubeRenderer app(_name, 600, 800, instance_extensions, device_extensions, validations);
 		app.run();
