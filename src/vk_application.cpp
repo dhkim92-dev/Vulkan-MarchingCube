@@ -271,7 +271,7 @@ namespace VKEngine{
 	void Application::submitFrame(){
 		// VkQueue queue = graphics_queue->getQueue();
 		// VkResult result = swapchain.queuePresent(queue, current_frame_index, semaphores.render_complete);
-		VkResult result = swapchain->present(graphics_queue, &current_frame_index, &semaphores.render_complete);
+		VkResult result = swapchain->present(graphics_queue, &current_frame_index, semaphores.render_complete);
 		if(!(result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR)){
 			LOG("Application::submitFrame result is VK_SUCCESS or VK_SUBOPTIMAL_KHR\n");
 			//TODO window resize
