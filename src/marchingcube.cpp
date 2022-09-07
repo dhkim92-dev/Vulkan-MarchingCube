@@ -285,7 +285,7 @@ void MarchingCube::setupBuffers(){
 	buffers.d_cpsum.create(ctx, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,meta_info.x * meta_info.y * meta_info.z * sizeof(uint32_t), nullptr);
 	buffers.vertices.create(ctx, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,6*(meta_info.x * meta_info.y * meta_info.z * sizeof(float)), nullptr);
 	buffers.indices.create(ctx, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,3*(meta_info.x * meta_info.y * meta_info.z * sizeof(uint32_t)), nullptr);
-	// buffers.normals.create(ctx, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,4, nullptr);
+	buffers.normals.create(ctx, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,4, nullptr);
 
 	uint32_t h_cast_table[12] ={0,4,meta_info.x*3,1,3*meta_info.x*meta_info.y,3*(meta_info.x*meta_info.y + 1) + 1,3*(meta_info.x*meta_info.y + meta_info.x),3*(meta_info.x*meta_info.y) + 1,2,5,3*(meta_info.x+ 1) + 2,3*meta_info.x + 2};
 	buffers.d_caster.create(ctx, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,12*sizeof(uint32_t), nullptr);
