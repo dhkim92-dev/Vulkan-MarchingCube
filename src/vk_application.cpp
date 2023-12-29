@@ -7,14 +7,16 @@
 using namespace std;
 
 namespace VKEngine{
-	Application::Application(
-		string name,
-		uint32_t _height, uint32_t _width, 
+	Application::Application(string name,
+		uint32_t _height, 
+		uint32_t _width, 
 		const vector<const char *> _instance_extension_names,
 		const vector<const char *> _device_extension_names,
-		const vector<const char *> _validation_names){
+		const vector<const char *> _validation_names,
+		int32_t gpu_id) {
 		height = _height;
 		width = _width;
+		gpu_id = gpu_id;
 		engine = new Engine(name,_instance_extension_names, _device_extension_names ,_validation_names);
 		camera.init( glm::vec3(0.0f, 0.0f, -3.0f), glm::vec3(0.0f, 0.0f, 0.0f) );
 	}	
@@ -66,7 +68,7 @@ namespace VKEngine{
 
     void Application::createPhysicalDevice(){
         device = new PhysicalDevice(engine);
-        device->useGPU(0);
+        device->useGPU(gpu_id);
         device->init();
     }
 

@@ -102,12 +102,14 @@ class MarchingCubeRenderer : public Application{
 	VkFence draw_fence = VK_NULL_HANDLE;
 	
 	public :
-	explicit MarchingCubeRenderer(string _name, int h, int w, 
+	explicit MarchingCubeRenderer(string _name, 
+		int h, int w, 
 		vector<const char *> instance_extensions, 
 		vector<const char*> device_extensions, 
-		vector<const char*> validations) : Application(_name, h, w, instance_extensions, device_extensions, validations
-	){
-		this->engine->setDebug(true);
+		vector<const char*> validations,
+		int32_t gpu_id = 0) 
+		: Application(_name, h, w, instance_extensions, device_extensions, validations, gpu_id) {
+			this->engine->setDebug(true);
 	}
 	
 	protected:
@@ -331,15 +333,17 @@ class MarchingCubeRenderer : public Application{
 
 int main(int argc, char* argv[]){
 	vector<const char *> instance_extensions(getRequiredExtensions());
+	instance_extensions.push_back("VK_KHR_portability_enumeration");
  	vector<const char *> validations={"VK_LAYER_KHRONOS_validation"};
-	vector<const char *> device_extensions= {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+	vector<const char *> device_extensions= {
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+		// "VK_KHR_portability_subset"
+	};
 	string _name = "Vulkan-MarchingCube";
+	int32_t gpu_id = 0;
 
-    for(auto s : instance_extensions) {
-        cout << "instance extension name : " << s << endl;
-    }
 	try {
-		MarchingCubeRenderer app(_name, 600, 800, instance_extensions, device_extensions, validations);
+		MarchingCubeRenderer app(_name, 600, 800, instance_extensions, device_extensions, validations, gpu_id);
 		app.run();
 	} catch(std::exception& e) {
 		cout << "error occured " << e.what() << " on File " << __FILE__ << " line : " << __LINE__ << endl;

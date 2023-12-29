@@ -15,6 +15,7 @@ private :
 	VkPipelineCache cache = VK_NULL_HANDLE;
 	// VkFence fence = VK_NULL_HANDLE;
 	void *h_volume;	
+
 	struct MetaInfo{
 		uint32_t x,y,z;
 		float isovalue;
